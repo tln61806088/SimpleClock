@@ -7,41 +7,53 @@ struct HomeView: View {
     @StateObject private var timerViewModel = TimerViewModel()
     @State private var timerSettings = TimerSettings.default
     
+    let mainButtonHeight: CGFloat = 80
+    let mainButtonSpacing: CGFloat = 16
+    
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // 时钟显示区域
-                    clockDisplayArea
-                
-                Divider()
-                
-                // 计时设置区域
-                TimerPickerView(settings: $timerSettings)
-                    .onChange(of: timerSettings) { newSettings in
-                        timerViewModel.updateSettings(newSettings)
+            GeometryReader { geometry in
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // 时钟显示区域
+                        clockDisplayArea
+                    
+                        Divider()
+                    
+                        // 计时设置区域
+                        TimerPickerView(settings: $timerSettings)
+                            .onChange(of: timerSettings) { newSettings in
+                                timerViewModel.updateSettings(newSettings)
+                            }
+                    
+                        Divider()
+                        
+                        // 背景音乐控制区域
+                        MusicControlView()
+                    
+                        Divider()
+                    
+                        // 底部按钮区
+                        VStack {
+                            Spacer(minLength: 0)
+                            MainControlButtonsView(viewModel: timerViewModel)
+                            Spacer()
+                            VoiceRecognitionButton(viewModel: timerViewModel)
+                            Spacer(minLength: geometry.safeAreaInsets.bottom)
+                        }
+                        .frame(height: geometry.size.height * 0.5)
+                        .padding(.horizontal, 0)
                     }
-                
-                Divider()
-                
-                // 操作按钮区域
-                MainControlButtonsView(viewModel: timerViewModel)
-                
-                // 语音识别按钮
-                VoiceRecognitionButton(viewModel: timerViewModel)
-                    .padding(.top, 8)
-                    .padding(.bottom, 20)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 20)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 20)
+                .navigationTitle("SimpleClock")
+                .navigationBarTitleDisplayMode(.inline)
+                .background(Color(.systemGroupedBackground))
             }
-            .navigationTitle("SimpleClock")
-            .navigationBarTitleDisplayMode(.inline)
-            .background(Color(.systemGroupedBackground))
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .onAppear {
-            // 初始化计时器设置
             timerViewModel.updateSettings(timerSettings)
         }
     }

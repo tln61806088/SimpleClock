@@ -174,6 +174,7 @@ class SpeechRecognitionHelper: NSObject {
             
             // 存储最新的识别结果（即使是部分结果）
             let normalizedCommand = normalizeCommand(recognizedText)
+            print("原始语音: \(recognizedText) -> 归一化指令: \(normalizedCommand)")
             lastRecognizedText = normalizedCommand
             
             // 如果设置了实时回调，也可以调用
@@ -186,9 +187,26 @@ class SpeechRecognitionHelper: NSObject {
         
         if let error = error {
             print("语音识别错误: \(error)")
-            lastRecognizedText = "识别失败"
-            DispatchQueue.main.async {
-                self.completionHandler?("识别失败")
+            // 检查是否是"没有检测到语音"的错误
+            if (error as NSError).code == 1110 {
+                // 只有在没有识别结果时才设置"未检测到语音"
+                if lastRecognizedText == nil {
+                    lastRecognizedText = "未检测到语音"
+                    DispatchQueue.main.async {
+                        self.completionHandler?("未检测到语音")
+                    }
+                }
+            } else if (error as NSError).code == 301 {
+                // Code 301 是主动取消，不要覆盖已有的识别结果
+                print("语音识别被主动取消，保留已识别的结果")
+            } else {
+                // 其他错误才设置为识别失败
+                if lastRecognizedText == nil {
+                    lastRecognizedText = "识别失败"
+                    DispatchQueue.main.async {
+                        self.completionHandler?("识别失败")
+                    }
+                }
             }
         }
     }

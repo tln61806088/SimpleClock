@@ -31,10 +31,41 @@ class TimerViewModel: ObservableObject {
         
         // 初始状态remainingSeconds为0，不显示倒计时
         remainingSeconds = 0
+        
+        // 设置锁屏媒体控制回调
+        setupLockScreenControls()
     }
     
     deinit {
         stopTimer()
+        LockScreenMediaHelper.shared.stopTimerDisplay()
+    }
+    
+    // MARK: - Private Setup Methods
+    
+    /// 设置锁屏媒体控制
+    private func setupLockScreenControls() {
+        LockScreenMediaHelper.shared.setControlCallbacks(
+            play: { [weak self] in
+                DispatchQueue.main.async {
+                    if self?.isRunning == false {
+                        self?.startTimer()
+                    }
+                }
+            },
+            pause: { [weak self] in
+                DispatchQueue.main.async {
+                    if self?.isRunning == true {
+                        self?.pauseTimer()
+                    }
+                }
+            },
+            stop: { [weak self] in
+                DispatchQueue.main.async {
+                    self?.stopTimer()
+                }
+            }
+        )
     }
     
     // MARK: - Public Methods
@@ -57,10 +88,20 @@ class TimerViewModel: ObservableObject {
         isRunning = true
         pausedTime = 0
         
+        // 开始后台任务以确保计时器在后台继续运行
+        PermissionManager.shared.beginBackgroundTask()
+        
         // 启动定时器
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.updateTimer()
         }
+        
+        // 显示锁屏媒体信息
+        LockScreenMediaHelper.shared.startTimerDisplay(
+            duration: settings.duration,
+            remainingSeconds: remainingSeconds,
+            isRunning: true
+        )
         
         // 安排本地通知
         scheduleNotifications()
@@ -79,6 +120,13 @@ class TimerViewModel: ObservableObject {
             pausedTime = Date().timeIntervalSince(startTime)
         }
         
+        // 更新锁屏媒体信息为暂停状态
+        LockScreenMediaHelper.shared.startTimerDisplay(
+            duration: settings.duration,
+            remainingSeconds: remainingSeconds,
+            isRunning: false
+        )
+        
         // 取消所有通知
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
@@ -95,6 +143,12 @@ class TimerViewModel: ObservableObject {
         
         // 结束计时后，将剩余时间重置为0，恢复正常时钟显示
         remainingSeconds = 0
+        
+        // 结束后台任务
+        PermissionManager.shared.endBackgroundTask()
+        
+        // 清除锁屏媒体信息
+        LockScreenMediaHelper.shared.stopTimerDisplay()
         
         // 取消所有通知
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
@@ -127,6 +181,14 @@ class TimerViewModel: ObservableObject {
             handleTimerCompletion()
         } else {
             remainingSeconds = Int(remaining)
+            
+            // 更新锁屏媒体信息
+            LockScreenMediaHelper.shared.startTimerDisplay(
+                duration: settings.duration,
+                remainingSeconds: remainingSeconds,
+                isRunning: isRunning
+            )
+            
             checkForReminders()
         }
     }
@@ -143,8 +205,15 @@ class TimerViewModel: ObservableObject {
             SpeechHelper.shared.speak(message)
         }
         
-        // 最后2分钟每分钟提醒
-        if remainingMinutes <= 2 && remainingMinutes > 0 && lastReminderMinute != remainingMinutes {
+        // 特殊提醒：距离结束2分钟时的提醒（除了"不提醒"和"1分钟"间隔）
+        if remainingMinutes == 2 && settings.interval != 0 && settings.interval != 1 && lastReminderMinute != remainingMinutes {
+            lastReminderMinute = remainingMinutes
+            let message = "剩余2分钟，计时即将结束"
+            SpeechHelper.shared.speak(message)
+        }
+        
+        // 1分钟间隔的情况：最后2分钟每分钟提醒
+        if settings.interval == 1 && remainingMinutes <= 2 && remainingMinutes > 0 && lastReminderMinute != remainingMinutes {
             lastReminderMinute = remainingMinutes
             let message = "剩余\(remainingMinutes)分钟"
             SpeechHelper.shared.speak(message)
