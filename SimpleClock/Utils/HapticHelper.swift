@@ -16,9 +16,15 @@ class HapticHelper {
     /// 提供轻微震动反馈
     /// 用于按钮点击、滚轮停止、语音识别开始/结束等操作
     func lightImpact() {
-        impactGenerator.impactOccurred()
-        // 重新准备下次使用
-        impactGenerator.prepare()
+        print("HapticHelper: 触发轻微震动")
+        
+        // 在主线程上执行震动操作
+        DispatchQueue.main.async {
+            // 创建新的震动生成器实例，避免重用问题
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.prepare()
+            generator.impactOccurred()
+        }
     }
     
     /// 为滚轮选择器提供震动反馈

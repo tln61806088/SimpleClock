@@ -1,12 +1,13 @@
 import SwiftUI
 
 /// 语音识别按钮
-/// 大圆形按钮，按住开始录音，松开后进行语音识别
+/// 长方形按钮，点击开始录音，再次点击或3秒后自动结束录音并进行语音识别
 struct VoiceRecognitionButton: View {
     
     @ObservedObject var viewModel: TimerViewModel
     @State private var isRecording = false
     @State private var recordingAnimation = false
+    @State private var recordingTimer: Timer?
     
     var body: some View {
         VStack(spacing: 8) {
@@ -45,35 +46,28 @@ struct VoiceRecognitionButton: View {
                         .multilineTextAlignment(.center)
                 }
             }
-            .onLongPressGesture(
-                minimumDuration: 0.1,
-                maximumDistance: 50,
-                pressing: { pressing in
-                    handlePressStateChange(pressing)
-                },
-                perform: {
-                    // 长按完成时的处理（可选）
-                }
-            )
+            .onTapGesture {
+                handleTapGesture()
+            }
             
-            Text("按住说话")
+            Text(isRecording ? "录音中，点击结束" : "点击说话")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("语音识别按钮")
-        .accessibilityHint("按住说话进行语音识别控制")
+        .accessibilityHint("点击开始语音识别，再次点击结束")
         .accessibilityAddTraits(.isButton)
     }
     
-    /// 处理按压状态变化
-    private func handlePressStateChange(_ pressing: Bool) {
-        if pressing {
-            // 开始录音
-            startRecording()
-        } else {
-            // 结束录音
+    /// 处理点击手势
+    private func handleTapGesture() {
+        if isRecording {
+            // 正在录音，点击结束
             stopRecording()
+        } else {
+            // 未在录音，点击开始
+            startRecording()
         }
     }
     
@@ -85,11 +79,25 @@ struct VoiceRecognitionButton: View {
         recordingAnimation = true
         
         // 轻微震动反馈
+        print("触发开始录音震动")
         HapticHelper.shared.voiceRecognitionImpact()
         
-        // 开始语音识别（但不立即处理结果）
-        SpeechRecognitionHelper.shared.startRecording { _ in
-            // 录音过程中不处理结果，等松手后处理
+        // 震动后稍微延迟再开始录音，确保用户感受到震动
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            // 开始语音识别（但不立即处理结果）
+            print("开始语音识别录音")
+            SpeechRecognitionHelper.shared.startRecording { _ in
+                // 录音过程中不处理结果，等手动停止或超时后处理
+            }
+        }
+        
+        // 启动3秒计时器，自动停止录音
+        recordingTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [self] _ in
+            print("3秒录音时间到，自动停止录音")
+            // 需要通过状态检查来避免重复调用
+            if isRecording {
+                stopRecording()
+            }
         }
     }
     
@@ -97,52 +105,78 @@ struct VoiceRecognitionButton: View {
     private func stopRecording() {
         guard isRecording else { return }
         
+        // 清理计时器
+        recordingTimer?.invalidate()
+        recordingTimer = nil
+        
         isRecording = false
         recordingAnimation = false
         
-        // 轻微震动反馈
+        // 立即震动反馈
+        print("触发停止录音震动")
         HapticHelper.shared.voiceRecognitionImpact()
         
-        // 停止语音识别并处理最终结果
-        SpeechRecognitionHelper.shared.stopRecording()
-        
-        // 获取识别结果并处理
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            if let recognizedText = SpeechRecognitionHelper.shared.getLastRecognizedText() {
-                self.handleVoiceRecognitionResult(recognizedText)
+        // 延长0.5秒录音时间，确保捕获完整语音
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            // 停止语音识别
+            print("延长录音结束，停止语音识别")
+            SpeechRecognitionHelper.shared.stopRecording()
+            
+            // 再等待0.1秒后处理识别结果
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let recognizedText = SpeechRecognitionHelper.shared.getLastRecognizedText() {
+                    print("语音识别结果: \(recognizedText)")
+                    self.handleVoiceRecognitionResult(recognizedText)
+                } else {
+                    print("语音识别: 没有获取到识别结果")
+                }
             }
         }
     }
     
     /// 处理语音识别结果
     private func handleVoiceRecognitionResult(_ result: String) {
+        print("开始处理语音指令: \(result)")
+        print("当前计时器状态 - isRunning: \(viewModel.isRunning), remainingSeconds: \(viewModel.remainingSeconds)")
+        
         // 根据识别结果执行相应操作
         switch result {
         case "开始计时":
+            print("匹配到开始计时指令")
             if !viewModel.isRunning {
+                print("执行开始计时")
                 viewModel.startTimer()
                 SpeechHelper.shared.speakVoiceRecognitionFeedback("开始计时")
             } else {
+                print("计时器已在运行，不执行")
                 SpeechHelper.shared.speakVoiceRecognitionFeedback("计时器已在运行")
             }
             
         case "暂停计时":
+            print("匹配到暂停计时指令")
             if viewModel.isRunning {
+                print("执行暂停计时")
                 viewModel.pauseTimer()
                 SpeechHelper.shared.speakVoiceRecognitionFeedback("暂停计时")
             } else {
+                print("计时器未运行，不执行")
                 SpeechHelper.shared.speakVoiceRecognitionFeedback("计时器未运行")
             }
             
         case "恢复计时":
+            print("匹配到恢复计时指令")
             if !viewModel.isRunning && viewModel.remainingSeconds > 0 {
+                print("执行恢复计时")
                 viewModel.startTimer()
                 SpeechHelper.shared.speakVoiceRecognitionFeedback("恢复计时")
             } else {
+                print("无法恢复计时 - isRunning: \(viewModel.isRunning), remainingSeconds: \(viewModel.remainingSeconds)")
                 SpeechHelper.shared.speakVoiceRecognitionFeedback("无法恢复计时")
             }
             
         case "结束计时":
+            print("匹配到结束计时指令")
+            print("执行结束计时")
             viewModel.stopTimer()
             SpeechHelper.shared.speakVoiceRecognitionFeedback("结束计时")
             
@@ -159,14 +193,20 @@ struct VoiceRecognitionButton: View {
                 SpeechHelper.shared.speakRemainingTime(remainingSeconds: viewModel.remainingSeconds)
             }
             
+        case "未检测到语音":
+            // 用户没有说话，给出友好提示
+            SpeechHelper.shared.speakVoiceRecognitionFeedback("请点击按钮后再说话")
+            
         default:
+            print("进入default分支，未匹配到预定义指令: \(result)")
             if result.hasPrefix("计时") && result.hasSuffix("分钟") {
-                // 处理计时设置指令
+                print("处理计时设置指令")
                 handleTimerDurationCommand(result)
             } else if result.hasPrefix("间隔") && result.hasSuffix("分钟") {
-                // 处理间隔设置指令
+                print("处理间隔设置指令")
                 handleIntervalCommand(result)
             } else {
+                print("播报未识别指令")
                 SpeechHelper.shared.speakVoiceRecognitionFeedback(result)
             }
         }
