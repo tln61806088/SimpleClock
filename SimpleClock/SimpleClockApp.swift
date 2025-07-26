@@ -21,15 +21,18 @@ struct SimpleClockApp: App {
         }
     }
     
-    /// 请求应用所需的所有权限并启动后台音频
+    /// 请求应用所需的所有权限
     private func requestAllPermissions() {
+        // 立即激活音频会话（遵循iOS最佳实践）
+        AudioSessionManager.shared.activateAudioSession()
+        
         // 延迟请求权限，给用户更好的体验
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             // 请求通知权限
             self.requestNotificationPermission()
             
-            // 启动持续音频播放以维持后台会话
-            ContinuousAudioPlayer.shared.startContinuousPlayback()
+            // 注意：不再自动启动音乐播放
+            // 音乐播放将在计时器启动时开始
         }
     }
     
