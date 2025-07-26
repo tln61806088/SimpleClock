@@ -3,7 +3,6 @@
 //  SimpleClock
 //
 //  持续播放微弱音频以维持后台音频会话
-//  通过循环播放极小音量的滴答声来确保系统不会杀死后台进程
 //
 
 import AVFoundation
@@ -17,8 +16,8 @@ class ContinuousAudioPlayer: NSObject {
     private var audioPlayer: AVAudioPlayer?
     private var isPlaying = false
     
-    // 微弱但可识别的音量设置（让系统识别为音频播放）
-    private let minimalVolume: Float = 0.1
+    // 临时调整到正常音量，方便测试听到滴答声效果
+    private let minimalVolume: Float = 1.0
     
     private override init() {
         super.init()
@@ -28,112 +27,56 @@ class ContinuousAudioPlayer: NSObject {
     
     /// 设置音频播放器
     private func setupAudioPlayer() {
-        guard let audioData = generateSilentTickAudio() else {
-            logger.error("无法生成静默滴答音频")
+        guard let audioPath = Bundle.main.path(forResource: "piano_01", ofType: "mp3") else {
+            logger.error("无法找到piano_01.mp3音频文件")
             return
         }
         
+        logger.info("找到音频文件路径: \(audioPath)")
+        
         do {
-            audioPlayer = try AVAudioPlayer(data: audioData)
+            let audioURL = URL(fileURLWithPath: audioPath)
+            audioPlayer = try AVAudioPlayer(contentsOf: audioURL)
             audioPlayer?.delegate = self
             audioPlayer?.volume = minimalVolume
             audioPlayer?.numberOfLoops = -1  // 无限循环
             let prepared = audioPlayer?.prepareToPlay() ?? false
             
             logger.info("持续音频播放器初始化成功，prepareToPlay: \(prepared)")
+            let duration = audioPlayer?.duration ?? 0
+            logger.info("音频文件时长: \(duration) 秒")
         } catch {
             logger.error("创建音频播放器失败: \(error.localizedDescription)")
         }
     }
     
-    /// 生成1秒的极微弱滴答声音频数据
-    private func generateSilentTickAudio() -> Data? {
-        let sampleRate: Double = 44100
-        let duration: Double = 1.0  // 1秒
-        let frameCount = Int(sampleRate * duration)
-        
-        // 创建极微弱的滴答声（只在开始有一个很小的脉冲）
-        var audioData = Data()
-        
-        // WAV文件头
-        let header = createWAVHeader(sampleRate: Int(sampleRate), frameCount: frameCount)
-        audioData.append(header)
-        
-        // 音频数据：前0.01秒有极微弱的脉冲，其余时间静默
-        for i in 0..<frameCount {
-            var sample: Int16
-            if i < Int(sampleRate * 0.01) {  // 前0.01秒
-                let amplitude: Double = 0.001  // 极微弱振幅
-                let frequency: Double = 1000   // 1kHz
-                let time = Double(i) / sampleRate
-                sample = Int16(amplitude * sin(2.0 * Double.pi * frequency * time) * Double(Int16.max))
-            } else {
-                sample = 0  // 静默
-            }
-            
-            // 立体声（左右声道相同）
-            audioData.append(Data(bytes: &sample, count: 2))
-            audioData.append(Data(bytes: &sample, count: 2))
-        }
-        
-        logger.info("音频生成完成，大小: \(audioData.count) 字节")
-        return audioData
-    }
-    
-    /// 创建WAV文件头
-    private func createWAVHeader(sampleRate: Int, frameCount: Int) -> Data {
-        var header = Data()
-        
-        // RIFF header
-        header.append("RIFF".data(using: .ascii)!)
-        var fileSize = UInt32(36 + frameCount * 4)  // 4 bytes per frame (16-bit stereo)
-        header.append(Data(bytes: &fileSize, count: 4))
-        header.append("WAVE".data(using: .ascii)!)
-        
-        // fmt chunk
-        header.append("fmt ".data(using: .ascii)!)
-        var chunkSize = UInt32(16)
-        header.append(Data(bytes: &chunkSize, count: 4))
-        var audioFormat = UInt16(1)  // PCM
-        header.append(Data(bytes: &audioFormat, count: 2))
-        var numChannels = UInt16(2)  // Stereo
-        header.append(Data(bytes: &numChannels, count: 2))
-        var sampleRateData = UInt32(sampleRate)
-        header.append(Data(bytes: &sampleRateData, count: 4))
-        var byteRate = UInt32(sampleRate * 4)  // sampleRate * numChannels * bitsPerSample/8
-        header.append(Data(bytes: &byteRate, count: 4))
-        var blockAlign = UInt16(4)  // numChannels * bitsPerSample/8
-        header.append(Data(bytes: &blockAlign, count: 2))
-        var bitsPerSample = UInt16(16)
-        header.append(Data(bytes: &bitsPerSample, count: 2))
-        
-        // data chunk
-        header.append("data".data(using: .ascii)!)
-        var dataSize = UInt32(frameCount * 4)
-        header.append(Data(bytes: &dataSize, count: 4))
-        
-        return header
-    }
-    
     /// 开始持续播放
     func startContinuousPlayback() {
-        logger.info("🔄 开始持续音频播放")
+        logger.info("🔄 准备启动持续音频播放")
         
-        guard let player = audioPlayer else {
+        if audioPlayer == nil {
             logger.error("音频播放器未初始化，重新初始化")
             setupAudioPlayer()
-            guard let _ = audioPlayer else {
+            if audioPlayer == nil {
                 logger.error("重新初始化音频播放器失败")
                 return
             }
             logger.info("重新初始化音频播放器成功")
-            return startContinuousPlayback() // 递归调用
         }
         
-        if isPlaying {
-            logger.info("持续音频已在播放中")
+        guard let player = audioPlayer else {
+            logger.error("音频播放器为nil")
             return
         }
+        
+        logger.info("🔄 获取到ContinuousAudioPlayer实例")
+        
+        if isPlaying {
+            logger.info("持续音频已在播放中，跳过启动")
+            return
+        }
+        
+        logger.info("🔄 开始持续音频播放")
         
         // 确保音频会话配置正确
         AudioSessionManager.shared.activateAudioSession()
@@ -143,15 +86,16 @@ class ContinuousAudioPlayer: NSObject {
         
         if success {
             logger.info("✅ 开始持续播放微弱音频以维持后台会话，音量: \(player.volume)")
+            logger.info("🔄 已调用startContinuousPlayback方法")
             
             // 延迟检查播放状态
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                if let self = self, let player = self.audioPlayer {
-                    self.logger.info("播放状态检查 - isPlaying: \(self.isPlaying), player.isPlaying: \(player.isPlaying), currentTime: \(player.currentTime)")
-                }
+                guard let self = self, let player = self.audioPlayer else { return }
+                self.logger.info("播放状态检查 - isPlaying: \(self.isPlaying), player.isPlaying: \(player.isPlaying), currentTime: \(player.currentTime)")
             }
         } else {
             logger.error("❌ 无法开始持续音频播放")
+            isPlaying = false
         }
     }
     
@@ -172,9 +116,8 @@ class ContinuousAudioPlayer: NSObject {
         logger.info("🛑 停止持续播放微弱音频")
     }
     
-    /// 调整音量（保持微弱但可被系统识别）
+    /// 调整音量
     func setVolume(_ volume: Float) {
-        // 使用设定的微弱音量，不再进一步降低
         audioPlayer?.volume = minimalVolume
         logger.info("调整持续音频音量至: \(self.minimalVolume)")
     }
@@ -186,7 +129,7 @@ class ContinuousAudioPlayer: NSObject {
         return actuallyPlaying
     }
     
-    /// 强制重启播放（用于异常恢复）
+    /// 强制重启播放
     func forceRestartPlayback() {
         logger.info("强制重启持续音频播放")
         stopContinuousPlayback()
@@ -200,27 +143,36 @@ class ContinuousAudioPlayer: NSObject {
 extension ContinuousAudioPlayer: AVAudioPlayerDelegate {
     
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        if flag {
-            logger.info("持续音频循环完成")
-        } else {
-            logger.warning("持续音频播放异常结束")
-            isPlaying = false
+        logger.info("音频播放完成，成功: \(flag)")
+        if flag && isPlaying {
+            logger.warning("无限循环播放意外结束，重新启动")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.startContinuousPlayback()
+            }
         }
     }
     
     func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
-        logger.error("持续音频解码错误: \(error?.localizedDescription ?? "未知错误")")
+        logger.error("音频播放解码错误: \(error?.localizedDescription ?? "未知错误")")
         isPlaying = false
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.logger.info("尝试重新初始化音频播放器...")
+            self.setupAudioPlayer()
+        }
     }
     
     func audioPlayerBeginInterruption(_ player: AVAudioPlayer) {
-        logger.info("持续音频被中断")
+        logger.info("音频播放被中断")
+        isPlaying = false
     }
     
     func audioPlayerEndInterruption(_ player: AVAudioPlayer, withOptions flags: Int) {
-        logger.info("持续音频中断结束，恢复播放")
-        if isPlaying && !player.isPlaying {
-            player.play()
+        logger.info("音频播放中断结束，标志: \(flags)")
+        if UInt(flags) & AVAudioSession.InterruptionOptions.shouldResume.rawValue != 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.startContinuousPlayback()
+            }
         }
     }
 }

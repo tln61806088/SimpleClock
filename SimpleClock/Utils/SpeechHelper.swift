@@ -32,6 +32,17 @@ class SpeechHelper: NSObject, @unchecked Sendable {
         
         // 设置应用生命周期监听
         setupAppLifecycleHandling()
+        
+        // 启动静音状态监听器
+        _ = SilentModeDetector.shared
+        
+        // 监听静音状态变化
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(silentModeChanged),
+            name: .silentModeChanged,
+            object: nil
+        )
     }
     
     /// 使用AudioSessionManager配置音频会话
@@ -80,21 +91,9 @@ class SpeechHelper: NSObject, @unchecked Sendable {
     
     // 已移除后台任务管理函数，由PermissionManager统一处理
     
-    /// 检测设备是否处于静音状态
+    /// 检测设备是否处于静音状态（使用动态检测器）
     private func isSilentModeEnabled() -> Bool {
-        let audioSession = AVAudioSession.sharedInstance()
-        
-        // 检查音频会话的输出音量
-        if audioSession.outputVolume == 0.0 {
-            return true
-        }
-        
-        // 检查中断状态（可能由于静音开关导致）
-        if audioSession.secondaryAudioShouldBeSilencedHint {
-            return true
-        }
-        
-        return false
+        return SilentModeDetector.shared.isSilentMode
     }
     
     /// 播报文本内容 - 支持后台播放
@@ -104,7 +103,7 @@ class SpeechHelper: NSObject, @unchecked Sendable {
     func speak(_ text: String, rate: Float = AVSpeechUtteranceDefaultSpeechRate, volume: Float = 1.0) {
         // 检查静音状态
         if isSilentModeEnabled() {
-            logger.info("设备处于静音状态，跳过语音播报: \(text)")
+            logger.info("设备处于静音状态（动态检测），跳过语音播报: \(text)")
             return
         }
         
@@ -201,6 +200,22 @@ class SpeechHelper: NSObject, @unchecked Sendable {
         if isCurrentlySpeaking {
             synthesizer.stopSpeaking(at: .immediate)
         }
+    }
+    
+    @objc private func silentModeChanged(notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let isSilent = userInfo["isSilent"] as? Bool else {
+            return
+        }
+        
+        logger.info("静音状态变化通知: \(isSilent ? "静音" : "非静音")")
+        
+        if isSilent && isCurrentlySpeaking {
+            // 切换到静音时，停止当前播报
+            logger.info("切换到静音模式，停止当前语音播报")
+            synthesizer.stopSpeaking(at: .immediate)
+        }
+        // 如果从静音切换到非静音，不需要特殊处理，下次播报时会自动检测
     }
     
     deinit {
