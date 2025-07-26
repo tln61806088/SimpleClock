@@ -99,13 +99,8 @@ class LockScreenMediaHelper: NSObject {
         // 设置到系统
         nowPlayingInfoCenter.nowPlayingInfo = nowPlayingInfo
         
-        // 每次更新时重新声明音频会话控制权，确保抢占其他应用
-        do {
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setActive(true, options: [.notifyOthersOnDeactivation])
-        } catch {
-            print("重新声明媒体控制权失败: \(error.localizedDescription)")
-        }
+        // 不再每次更新时重新激活音频会话，避免与AudioSessionManager冲突
+        // 由AudioSessionManager统一管理音频会话生命周期
         
         print("锁屏媒体信息更新: \(title) - \(remainingTime)")
     }
@@ -140,8 +135,7 @@ class LockScreenMediaHelper: NSObject {
         let elapsedTime = totalDuration - TimeInterval(remainingSeconds)
         let remainingTimeText = formatTime(remainingSeconds)
         
-        // 立即抢占媒体控制权
-        forceTakeMediaControl()
+        // 不再强制抢占媒体控制权，使用AudioSessionManager统一管理
         
         updateNowPlayingInfo(
             remainingTime: remainingTimeText,
@@ -161,50 +155,14 @@ class LockScreenMediaHelper: NSObject {
         clearNowPlayingInfo()
     }
     
-    /// 配置音频会话以获得媒体控制权限
+    /// 不再独立配置音频会话，由AudioSessionManager统一管理
     private func configureAudioSession() {
-        do {
-            let audioSession = AVAudioSession.sharedInstance()
-            
-            // 使用最高优先级配置，确保能抢占其他音乐应用的媒体控制权
-            if #available(iOS 16.0, *) {
-                try audioSession.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers, .interruptSpokenAudioAndMixWithOthers, .defaultToSpeaker])
-            } else {
-                try audioSession.setCategory(.playback, options: [.duckOthers, .defaultToSpeaker])
-            }
-            
-            // 强制激活音频会话，抢占媒体控制权
-            try audioSession.setActive(true, options: [.notifyOthersOnDeactivation])
-            print("锁屏媒体控制 - 音频会话激活成功，已获得媒体控制权")
-            
-        } catch {
-            print("锁屏媒体控制 - 音频会话配置失败: \(error.localizedDescription)")
-        }
+        // LockScreenMediaHelper不再管理音频会话
+        // 所有音频会话配置和激活由AudioSessionManager统一处理
+        print("锁屏媒体控制 - 使用AudioSessionManager统一音频会话管理")
     }
     
-    /// 强制抢占媒体控制权
-    private func forceTakeMediaControl() {
-        do {
-            let audioSession = AVAudioSession.sharedInstance()
-            
-            // 先停用其他应用的音频会话
-            try audioSession.setActive(false, options: [])
-            
-            // 延迟一点时间确保其他应用释放控制权
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                do {
-                    // 重新激活我们的音频会话，抢占控制权
-                    try audioSession.setActive(true, options: [.notifyOthersOnDeactivation])
-                    print("强制抢占媒体控制权成功")
-                } catch {
-                    print("强制抢占媒体控制权失败: \(error.localizedDescription)")
-                }
-            }
-            
-        } catch {
-            print("停用其他音频会话失败: \(error.localizedDescription)")
-        }
-    }
+    // 已删除强制抢占媒体控制权函数，使用AudioSessionManager统一管理音频会话
     
     /// 启动媒体控制权维持定时器
     private func startMediaControlMaintenance() {
