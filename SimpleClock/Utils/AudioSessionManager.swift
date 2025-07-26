@@ -29,19 +29,18 @@ class AudioSessionManager: ObservableObject {
     /// 配置音频会话以支持后台播放
     private func setupAudioSession() {
         do {
-            // 设置音频会话类别为播放，支持后台播放
-            // 使用 spokenAudio 模式，专为语音播报优化
+            // 重要：根据iOS最佳实践，使用.playback类别不带.mixWithOthers选项
+            // 因为.mixWithOthers会导致MPNowPlayingInfoCenter被忽略！
             try audioSession.setCategory(
                 .playback,  // 播放类别，支持后台播放
-                mode: .spokenAudio,  // 语音音频模式，为TTS优化
+                mode: .default,  // 使用默认模式，比spokenAudio更适合音乐播放
                 options: [
-                    .duckOthers,           // 降低其他应用音量
-                    .interruptSpokenAudioAndMixWithOthers  // 与其他语音应用混音
+                    .duckOthers  // 只降低其他应用音量，不混音
                 ]
             )
             
             currentCategory = .playback
-            logger.info("音频会话配置成功：类别=播放，模式=语音音频")
+            logger.info("音频会话配置成功：类别=播放，模式=默认（支持锁屏控制）")
             
         } catch {
             logger.error("配置音频会话失败: \(error.localizedDescription)")
@@ -84,10 +83,10 @@ class AudioSessionManager: ObservableObject {
     /// 临时激活录音模式（语音识别时使用）
     func enableRecordingMode() {
         do {
-            // 临时切换到播放和录音模式
+            // 临时切换到播放和录音模式，用于语音识别
             try audioSession.setCategory(
                 .playAndRecord,
-                mode: .spokenAudio,
+                mode: .spokenAudio,  // 语音识别时使用spokenAudio模式
                 options: [
                     .duckOthers,
                     .allowBluetooth,    // 允许蓝牙设备
@@ -95,7 +94,7 @@ class AudioSessionManager: ObservableObject {
                 ]
             )
             currentCategory = .playAndRecord
-            logger.info("切换到录音模式")
+            logger.info("切换到录音模式（语音识别）")
         } catch {
             logger.error("切换到录音模式失败: \(error.localizedDescription)")
         }

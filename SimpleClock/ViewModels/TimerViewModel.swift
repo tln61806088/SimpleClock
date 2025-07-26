@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import UserNotifications
 import UIKit
+import MediaPlayer
 import os.log
 
 /// 计时器视图模型，管理计时状态和提醒逻辑，支持后台运行
@@ -28,6 +29,7 @@ class TimerViewModel: ObservableObject {
     // 使用lazy初始化避免主线程警告
     private lazy var audioSessionManager = AudioSessionManager.shared
     private let continuousAudioPlayer = ContinuousAudioPlayer.shared
+    private let nowPlayingManager = NowPlayingManager.shared
     
     // 应用生命周期相关
     private var appDidEnterBackgroundObserver: NSObjectProtocol?
@@ -45,11 +47,20 @@ class TimerViewModel: ObservableObject {
         // 设置锁屏媒体控制回调
         setupLockScreenControls()
         
+        // 设置NowPlayingManager委托
+        nowPlayingManager.delegate = self
+        
         // 设置应用生命周期监听
         setupAppLifecycleObservers()
         
+        // 设置锁屏控制通知监听
+        setupLockScreenNotifications()
+        
         // 预初始化ContinuousAudioPlayer以确保日志正常工作
         _ = continuousAudioPlayer
+        
+        // 注意：不再初始显示音乐播放信息
+        // 锁屏信息将在计时器启动时设置
         
         // 初始化时激活音频会话
         audioSessionManager.activateAudioSession()
@@ -175,24 +186,17 @@ class TimerViewModel: ObservableObject {
         isRunning = true
         pausedTime = 0
         
-        // 开始持续播放微弱音频以维持后台音频会话
-        logger.info("🔄 准备启动持续音频播放")
-        let player = continuousAudioPlayer
-        logger.info("🔄 获取到ContinuousAudioPlayer实例: \(player)")
-        player.startContinuousPlayback()
-        logger.info("🔄 已调用startContinuousPlayback方法")
+        // 开始计时时启动音乐播放以维持后台音频会话
+        logger.info("🔄 计时开始，启动音乐播放")
+        continuousAudioPlayer.startContinuousPlayback()
         
         // 启动定时器
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.updateTimer()
         }
         
-        // 显示锁屏媒体信息
-        LockScreenMediaHelper.shared.startTimerDisplay(
-            duration: self.settings.duration,
-            remainingSeconds: self.remainingSeconds,
-            isRunning: true
-        )
+        // 更新锁屏媒体信息为计时状态
+        updateNowPlayingInfo()
         
         // 安排本地通知
         scheduleNotifications()
@@ -206,8 +210,8 @@ class TimerViewModel: ObservableObject {
         timer?.invalidate()
         timer = nil
         
-        // 暂停持续音频播放
-        continuousAudioPlayer.stopContinuousPlayback()
+        // 计时暂停时，音乐继续播放以维持后台会话
+        // 不停止音乐播放，这样锁屏控制依然可用
         
         // 记录暂停时的经过时间
         if let startTime = startTime {
@@ -215,11 +219,7 @@ class TimerViewModel: ObservableObject {
         }
         
         // 更新锁屏媒体信息为暂停状态
-        LockScreenMediaHelper.shared.startTimerDisplay(
-            duration: self.settings.duration,
-            remainingSeconds: self.remainingSeconds,
-            isRunning: false
-        )
+        updateNowPlayingInfo()
         
         // 取消所有通知
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
@@ -231,7 +231,7 @@ class TimerViewModel: ObservableObject {
         timer?.invalidate()
         timer = nil
         
-        // 停止持续音频播放
+        // 计时结束时停止音乐播放
         continuousAudioPlayer.stopContinuousPlayback()
         
         startTime = nil
@@ -242,7 +242,7 @@ class TimerViewModel: ObservableObject {
         remainingSeconds = 0
         
         // 清除锁屏媒体信息
-        LockScreenMediaHelper.shared.stopTimerDisplay()
+        nowPlayingManager.clearNowPlayingInfo()
         
         // 取消所有通知
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
@@ -277,11 +277,7 @@ class TimerViewModel: ObservableObject {
             remainingSeconds = Int(remaining)
             
             // 更新锁屏媒体信息
-            LockScreenMediaHelper.shared.startTimerDisplay(
-                duration: self.settings.duration,
-                remainingSeconds: self.remainingSeconds,
-                isRunning: self.isRunning
-            )
+            updateNowPlayingInfo()
             
             checkForReminders()
             
@@ -432,5 +428,152 @@ class TimerViewModel: ObservableObject {
         let request = UNNotificationRequest(identifier: "immediate_completion", content: content, trigger: trigger)
         
         UNUserNotificationCenter.current().add(request)
+    }
+    
+    /// 设置锁屏控制通知监听
+    private func setupLockScreenNotifications() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleLockScreenPlayCommand),
+            name: .lockScreenPlayCommand,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleLockScreenPauseCommand),
+            name: .lockScreenPauseCommand,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleLockScreenToggleCommand),
+            name: .lockScreenToggleCommand,
+            object: nil
+        )
+        
+        logger.info("🎵 设置锁屏控制通知监听完成")
+    }
+    
+    @objc private func handleLockScreenPlayCommand() {
+        logger.info("🎵 处理锁屏播放命令")
+        DispatchQueue.main.async {
+            if !self.isRunning {
+                self.startTimer()
+            }
+        }
+    }
+    
+    @objc private func handleLockScreenPauseCommand() {
+        logger.info("🎵 处理锁屏暂停命令")
+        DispatchQueue.main.async {
+            if self.isRunning {
+                self.pauseTimer()
+            }
+        }
+    }
+    
+    @objc private func handleLockScreenToggleCommand() {
+        logger.info("🎵 处理锁屏切换命令")
+        DispatchQueue.main.async {
+            if self.isRunning {
+                self.pauseTimer()
+            } else {
+                self.startTimer()
+            }
+        }
+    }
+    
+    /// 更新锁屏媒体信息
+    private func updateNowPlayingInfo() {
+        // 只有在计时运行或暂停时才显示计时器信息
+        if startTime != nil {
+            let title: String
+            let artist: String
+            
+            if isRunning {
+                let minutes = remainingSeconds / 60
+                let seconds = remainingSeconds % 60
+                title = "SimpleClock计时器"
+                artist = String(format: "剩余: %02d:%02d", minutes, seconds)
+            } else {
+                title = "SimpleClock计时器"
+                artist = "计时已暂停"
+            }
+            
+            // 直接更新MPNowPlayingInfoCenter
+            var nowPlayingInfo = [String: Any]()
+            
+            nowPlayingInfo[MPMediaItemPropertyTitle] = title
+            nowPlayingInfo[MPMediaItemPropertyArtist] = artist
+            nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = "SimpleClock"
+            
+            // 播放状态 - 音乐始终在播放，这里显示计时状态
+            nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0  // 音乐一直播放
+            nowPlayingInfo[MPNowPlayingInfoPropertyMediaType] = MPNowPlayingInfoMediaType.audio.rawValue
+            
+            // 时间信息
+            let elapsedTime = pausedTime > 0 ? pausedTime : 
+                             (startTime != nil ? Date().timeIntervalSince(startTime!) : 0)
+            let totalDuration = TimeInterval(settings.duration * 60)
+            
+            nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsedTime
+            nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = totalDuration
+            
+            // 添加专辑封面
+            if let image = UIImage(systemName: "timer") {
+                nowPlayingInfo[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: image.size) { _ in
+                    return image
+                }
+            }
+            
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+            logger.info("🎵 更新锁屏媒体信息: \(title)")
+        }
+        // 注意：没有计时任务时，不设置任何锁屏信息
+        // 这样锁屏就不会显示播放控件
+    }
+}
+
+// MARK: - NowPlayingManagerDelegate
+extension TimerViewModel: NowPlayingManagerDelegate {
+    
+    func nowPlayingManagerDidReceivePlayCommand() {
+        logger.info("🎵 锁屏播放命令：开始/恢复计时")
+        if !isRunning {
+            startTimer()
+        }
+    }
+    
+    func nowPlayingManagerDidReceivePauseCommand() {
+        logger.info("🎵 锁屏暂停命令：暂停计时")
+        if isRunning {
+            pauseTimer()
+        }
+    }
+    
+    func nowPlayingManagerDidReceiveToggleCommand() {
+        logger.info("🎵 锁屏切换命令：播放/暂停计时")
+        if isRunning {
+            pauseTimer()
+        } else {
+            startTimer()
+        }
+    }
+    
+    func nowPlayingManagerDidReceivePreviousTrackCommand() {
+        logger.info("🎵 锁屏上一首命令：降低音量")
+        // 可以实现降低音量或其他功能
+    }
+    
+    func nowPlayingManagerDidReceiveNextTrackCommand() {
+        logger.info("🎵 锁屏下一首命令：提高音量")
+        // 可以实现提高音量或其他功能
+    }
+    
+    func nowPlayingManagerDidSwitchToTrack(_ trackName: String) {
+        logger.info("🎵 锁屏切换音乐：\(trackName)")
+        // 这里可以通知ContinuousAudioPlayer切换音乐文件
     }
 }

@@ -7,6 +7,7 @@
 
 import AVFoundation
 import UIKit
+import MediaPlayer
 import os.log
 
 class ContinuousAudioPlayer: NSObject {
@@ -23,6 +24,7 @@ class ContinuousAudioPlayer: NSObject {
         super.init()
         logger.info("🔊 ContinuousAudioPlayer初始化")
         setupAudioPlayer()
+        setupRemoteCommands()
     }
     
     /// 设置音频播放器
@@ -85,7 +87,7 @@ class ContinuousAudioPlayer: NSObject {
         isPlaying = success
         
         if success {
-            logger.info("✅ 开始持续播放微弱音频以维持后台会话，音量: \(player.volume)")
+            logger.info("✅ 开始持续播放piano_01.mp3音频，音量: \(player.volume)")
             logger.info("🔄 已调用startContinuousPlayback方法")
             
             // 延迟检查播放状态
@@ -113,7 +115,8 @@ class ContinuousAudioPlayer: NSObject {
         
         player.stop()
         isPlaying = false
-        logger.info("🛑 停止持续播放微弱音频")
+        
+        logger.info("🛑 停止持续播放piano_01.mp3音频")
     }
     
     /// 调整音量
@@ -137,6 +140,63 @@ class ContinuousAudioPlayer: NSObject {
             self.startContinuousPlayback()
         }
     }
+    
+    /// 设置远程控制命令
+    private func setupRemoteCommands() {
+        let commandCenter = MPRemoteCommandCenter.shared()
+        
+        // 启用播放/暂停控制
+        commandCenter.playCommand.isEnabled = true
+        commandCenter.pauseCommand.isEnabled = true
+        commandCenter.togglePlayPauseCommand.isEnabled = true
+        commandCenter.nextTrackCommand.isEnabled = true
+        commandCenter.previousTrackCommand.isEnabled = true
+        
+        // 设置播放命令处理器
+        commandCenter.playCommand.addTarget { [weak self] event in
+            self?.logger.info("🎵 锁屏播放命令")
+            // 通知TimerViewModel开始计时
+            NotificationCenter.default.post(name: .lockScreenPlayCommand, object: nil)
+            return .success
+        }
+        
+        // 设置暂停命令处理器
+        commandCenter.pauseCommand.addTarget { [weak self] event in
+            self?.logger.info("🎵 锁屏暂停命令")
+            // 通知TimerViewModel暂停计时
+            NotificationCenter.default.post(name: .lockScreenPauseCommand, object: nil)
+            return .success
+        }
+        
+        // 设置播放/暂停切换命令处理器
+        commandCenter.togglePlayPauseCommand.addTarget { [weak self] event in
+            self?.logger.info("🎵 锁屏切换命令")
+            // 通知TimerViewModel切换计时状态
+            NotificationCenter.default.post(name: .lockScreenToggleCommand, object: nil)
+            return .success
+        }
+        
+        // 设置上一首命令处理器（可以用于其他功能）
+        commandCenter.previousTrackCommand.addTarget { [weak self] event in
+            self?.logger.info("🎵 锁屏上一首命令")
+            return .success
+        }
+        
+        // 设置下一首命令处理器（可以用于其他功能）
+        commandCenter.nextTrackCommand.addTarget { [weak self] event in
+            self?.logger.info("🎵 锁屏下一首命令")
+            return .success
+        }
+        
+        logger.info("🎵 设置远程控制命令完成")
+    }
+}
+
+// MARK: - Notification Names
+extension Notification.Name {
+    static let lockScreenPlayCommand = Notification.Name("lockScreenPlayCommand")
+    static let lockScreenPauseCommand = Notification.Name("lockScreenPauseCommand")
+    static let lockScreenToggleCommand = Notification.Name("lockScreenToggleCommand")
 }
 
 // MARK: - AVAudioPlayerDelegate
