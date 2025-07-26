@@ -1,8 +1,10 @@
 import Foundation
 import Combine
 import UserNotifications
+import UIKit
+import os.log
 
-/// 计时器视图模型，管理计时状态和提醒逻辑
+/// 计时器视图模型，管理计时状态和提醒逻辑，支持后台运行
 class TimerViewModel: ObservableObject {
     
     // MARK: - Published Properties
@@ -22,6 +24,14 @@ class TimerViewModel: ObservableObject {
     private var startTime: Date?
     private var pausedTime: TimeInterval = 0
     private var lastReminderMinute: Int = -1
+    private let logger = Logger(subsystem: "SimpleClock", category: "TimerViewModel")
+    // 使用lazy初始化避免主线程警告
+    private lazy var audioSessionManager = AudioSessionManager.shared
+    private let continuousAudioPlayer = ContinuousAudioPlayer.shared
+    
+    // 应用生命周期相关
+    private var appDidEnterBackgroundObserver: NSObjectProtocol?
+    private var appWillEnterForegroundObserver: NSObjectProtocol?
     
     // MARK: - Initialization
     
@@ -34,11 +44,28 @@ class TimerViewModel: ObservableObject {
         
         // 设置锁屏媒体控制回调
         setupLockScreenControls()
+        
+        // 设置应用生命周期监听
+        setupAppLifecycleObservers()
+        
+        // 预初始化ContinuousAudioPlayer以确保日志正常工作
+        _ = continuousAudioPlayer
+        
+        // 初始化时激活音频会话
+        audioSessionManager.activateAudioSession()
     }
     
     deinit {
         stopTimer()
         LockScreenMediaHelper.shared.stopTimerDisplay()
+        
+        // 移除生命周期观察者
+        if let observer = appDidEnterBackgroundObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = appWillEnterForegroundObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
     
     // MARK: - Private Setup Methods
@@ -68,6 +95,66 @@ class TimerViewModel: ObservableObject {
         )
     }
     
+    /// 设置应用生命周期观察者
+    private func setupAppLifecycleObservers() {
+        appDidEnterBackgroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleAppDidEnterBackground()
+        }
+        
+        appWillEnterForegroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleAppWillEnterForeground()
+        }
+    }
+    
+    /// 处理应用进入后台
+    private func handleAppDidEnterBackground() {
+        logger.info("应用进入后台，确保计时器和音频会话正常运行")
+        
+        // 只在音频会话未激活时才激活
+        if !audioSessionManager.isAudioSessionActive {
+            audioSessionManager.activateAudioSession()
+        }
+        
+        // 后台任务由PermissionManager统一管理，不需要在这里重复开始
+    }
+    
+    /// 处理应用回到前台
+    private func handleAppWillEnterForeground() {
+        logger.info("应用回到前台，同步计时器状态")
+        
+        // 只在音频会话未激活时才激活
+        if !audioSessionManager.isAudioSessionActive {
+            audioSessionManager.activateAudioSession()
+        }
+        
+        // 如果计时器应该在运行，同步实际状态
+        if isRunning, let startTime = startTime {
+            let elapsed = Date().timeIntervalSince(startTime)
+            let totalDuration = TimeInterval(settings.duration * 60)
+            let remaining = totalDuration - elapsed
+            
+            if remaining <= 0 {
+                // 计时已经结束，更新状态
+                logger.info("计时已在后台结束，更新状态")
+                remainingSeconds = 0
+                stopTimer()
+                handleTimerCompletion()
+            } else {
+                // 更新剩余时间
+                remainingSeconds = Int(remaining)
+                logger.info("同步剩余时间：\(self.remainingSeconds)秒")
+            }
+        }
+    }
+    
     // MARK: - Public Methods
     
     /// 开始计时
@@ -88,8 +175,12 @@ class TimerViewModel: ObservableObject {
         isRunning = true
         pausedTime = 0
         
-        // 开始后台任务以确保计时器在后台继续运行
-        PermissionManager.shared.beginBackgroundTask()
+        // 开始持续播放微弱音频以维持后台音频会话
+        logger.info("🔄 准备启动持续音频播放")
+        let player = continuousAudioPlayer
+        logger.info("🔄 获取到ContinuousAudioPlayer实例: \(player)")
+        player.startContinuousPlayback()
+        logger.info("🔄 已调用startContinuousPlayback方法")
         
         // 启动定时器
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -98,8 +189,8 @@ class TimerViewModel: ObservableObject {
         
         // 显示锁屏媒体信息
         LockScreenMediaHelper.shared.startTimerDisplay(
-            duration: settings.duration,
-            remainingSeconds: remainingSeconds,
+            duration: self.settings.duration,
+            remainingSeconds: self.remainingSeconds,
             isRunning: true
         )
         
@@ -115,6 +206,9 @@ class TimerViewModel: ObservableObject {
         timer?.invalidate()
         timer = nil
         
+        // 暂停持续音频播放
+        continuousAudioPlayer.stopContinuousPlayback()
+        
         // 记录暂停时的经过时间
         if let startTime = startTime {
             pausedTime = Date().timeIntervalSince(startTime)
@@ -122,8 +216,8 @@ class TimerViewModel: ObservableObject {
         
         // 更新锁屏媒体信息为暂停状态
         LockScreenMediaHelper.shared.startTimerDisplay(
-            duration: settings.duration,
-            remainingSeconds: remainingSeconds,
+            duration: self.settings.duration,
+            remainingSeconds: self.remainingSeconds,
             isRunning: false
         )
         
@@ -137,15 +231,15 @@ class TimerViewModel: ObservableObject {
         timer?.invalidate()
         timer = nil
         
+        // 停止持续音频播放
+        continuousAudioPlayer.stopContinuousPlayback()
+        
         startTime = nil
         pausedTime = 0
         lastReminderMinute = -1
         
         // 结束计时后，将剩余时间重置为0，恢复正常时钟显示
         remainingSeconds = 0
-        
-        // 结束后台任务
-        PermissionManager.shared.endBackgroundTask()
         
         // 清除锁屏媒体信息
         LockScreenMediaHelper.shared.stopTimerDisplay()
@@ -184,12 +278,25 @@ class TimerViewModel: ObservableObject {
             
             // 更新锁屏媒体信息
             LockScreenMediaHelper.shared.startTimerDisplay(
-                duration: settings.duration,
-                remainingSeconds: remainingSeconds,
-                isRunning: isRunning
+                duration: self.settings.duration,
+                remainingSeconds: self.remainingSeconds,
+                isRunning: self.isRunning
             )
             
             checkForReminders()
+            
+            // 每30秒检查一次持续音频播放状态
+            if Int(elapsed) % 30 == 0 {
+                checkContinuousAudioStatus()
+            }
+        }
+    }
+    
+    /// 检查持续音频播放状态
+    private func checkContinuousAudioStatus() {
+        if isRunning && !continuousAudioPlayer.isContinuouslyPlaying {
+            logger.warning("⚠️ 检测到持续音频停止播放，尝试重启")
+            continuousAudioPlayer.forceRestartPlayback()
         }
     }
     

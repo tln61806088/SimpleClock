@@ -28,10 +28,7 @@ struct HomeView: View {
                     
                         Divider()
                         
-                        // 背景音乐控制区域
-                        MusicControlView()
-                    
-                        Divider()
+                        // 已移除背景音乐控制，改用持续微弱音频维持后台
                     
                         // 底部按钮区
                         VStack {
