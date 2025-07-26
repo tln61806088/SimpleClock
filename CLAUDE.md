@@ -226,10 +226,197 @@ try audioSession.setCategory(
 - 必须有实际的音频播放才能维持后台音频会话
 - 所有配置正确但Info.plist错误会导致整个功能失效
 
+## 音乐播放生命周期优化 (2025-01-27)
+
+### 新的需求
+用户反馈希望音乐播放与计时器生命周期同步：
+- 应用启动时不自动播放音乐
+- 只有在开始计时时才播放音乐
+- 计时结束时停止音乐播放
+- 同时实现完整的锁屏媒体控制
+
+### 成功实现方案
+
+#### 1. 应用启动逻辑优化
+```swift
+// SimpleClockApp.swift - 移除自动音乐播放
+private func requestAllPermissions() {
+    // 立即激活音频会话（遵循iOS最佳实践）
+    AudioSessionManager.shared.activateAudioSession()
+    
+    // 注意：不再自动启动音乐播放
+    // 音乐播放将在计时器启动时开始
+}
+```
+
+#### 2. 计时器同步音乐播放
+```swift
+// TimerViewModel.swift - 关键修改点
+func startTimer() {
+    // 开始计时时启动音乐播放以维持后台音频会话
+    logger.info("🔄 计时开始，启动音乐播放")
+    continuousAudioPlayer.startContinuousPlayback()  // 第189-191行
+    
+    // 更新锁屏媒体信息为计时状态
+    updateNowPlayingInfo()
+}
+
+func pauseTimer() {
+    // 计时暂停时，音乐继续播放以维持后台会话
+    // 不停止音乐播放，这样锁屏控制依然可用
+}
+
+func stopTimer() {
+    // 计时结束时停止音乐播放
+    continuousAudioPlayer.stopContinuousPlayback()  // 第234-235行
+    
+    // 清除锁屏媒体信息
+    nowPlayingManager.clearNowPlayingInfo()
+}
+```
+
+#### 3. 音频会话配置优化
+```swift
+// AudioSessionManager.swift - 支持锁屏控制
+try audioSession.setCategory(
+    .playback,  // 播放类别，支持后台播放
+    mode: .default,  // 使用默认模式，比spokenAudio更适合音乐播放
+    options: [
+        .duckOthers  // 只降低其他应用音量，不混音
+        // 重要：移除.mixWithOthers选项，因为它会导致MPNowPlayingInfoCenter被忽略！
+    ]
+)
+```
+
+#### 4. 锁屏媒体控制集成
+```swift
+// ContinuousAudioPlayer.swift - 新增锁屏控制
+private func setupRemoteCommands() {
+    let commandCenter = MPRemoteCommandCenter.shared()
+    
+    // 启用播放/暂停控制
+    commandCenter.playCommand.isEnabled = true
+    commandCenter.pauseCommand.isEnabled = true
+    commandCenter.togglePlayPauseCommand.isEnabled = true
+    commandCenter.nextTrackCommand.isEnabled = true
+    commandCenter.previousTrackCommand.isEnabled = true
+    
+    // 通过NotificationCenter与TimerViewModel通信
+    commandCenter.playCommand.addTarget { [weak self] event in
+        NotificationCenter.default.post(name: .lockScreenPlayCommand, object: nil)
+        return .success
+    }
+}
+
+// TimerViewModel.swift - 锁屏媒体信息更新
+private func updateNowPlayingInfo() {
+    if startTime != nil {  // 只有在计时运行或暂停时才显示
+        var nowPlayingInfo = [String: Any]()
+        nowPlayingInfo[MPMediaItemPropertyTitle] = "SimpleClock计时器"
+        nowPlayingInfo[MPMediaItemPropertyArtist] = String(format: "剩余: %02d:%02d", minutes, seconds)
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    }
+    // 注意：没有计时任务时，不设置任何锁屏信息
+}
+```
+
+### 测试验证结果
+
+#### ✅ 模拟器测试 (iPhone 16)
+- ✅ 应用启动不自动播放音乐，显示正常时钟
+- ✅ 点击"开始计时"成功启动倒计时和音乐播放
+- ✅ 后台切换和锁屏状态音频继续播放
+- ✅ 锁屏控制正常显示和工作
+- ✅ 用户确认："后台播放正常"
+
+#### ⚠️ 真机测试问题 (iPhone 15 Pro)
+- ❌ 应用退出前台后立即停止播放
+- ❌ Console显示"有音频输出"但无声音
+- ❌ 音频文件正常加载，持续时间276.234秒
+- ❌ 播放器状态显示正常但实际无声音
+
+### 技术要点总结
+1. **音频会话模式**：锁屏控制需要`.default`模式，不能使用`.mixWithOthers`
+2. **生命周期同步**：音乐播放完全与计时器状态同步
+3. **锁屏控制**：通过MPNowPlayingInfoCenter和MPRemoteCommandCenter实现
+4. **后台维持**：暂停时保持音乐播放以维持后台会话
+5. **真机差异**：模拟器和真机的后台音频行为存在差异，需进一步调试
+
+## 锁屏音乐控制组件实现 (2025-01-27)
+
+### 问题现象
+用户反馈：音乐正常播放，但锁屏界面没有显示音乐播放控制组件（播放/暂停按钮等）。
+
+### 根本原因
+**遗漏了关键的Xcode项目配置**：在Target → Signing & Capabilities中没有添加Background Modes capability。
+
+### 完整解决方案
+
+#### 1. Xcode项目配置（关键！）
+**Target → Signing & Capabilities → + Capability → Background Modes**
+- ✅ 勾选 "Audio, AirPlay, and Picture in Picture"
+- ❌ 不需要勾选 "Remote notifications"（SimpleClock只使用本地通知）
+
+#### 2. MPNowPlayingInfoCenter正确配置
+```swift
+// 第一步：设置播放状态（关键）
+MPNowPlayingInfoCenter.default().playbackState = .playing
+
+// 第二步：设置详细媒体信息
+var nowPlayingInfo = [String: Any]()
+nowPlayingInfo[MPMediaItemPropertyTitle] = "SimpleClock 计时器"
+nowPlayingInfo[MPMediaItemPropertyArtist] = "正在计时"
+nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0 // 必须为1.0
+nowPlayingInfo[MPNowPlayingInfoPropertyMediaType] = MPNowPlayingInfoMediaType.audio.rawValue
+
+// 第三步：设置到系统
+MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+```
+
+#### 3. MPRemoteCommandCenter配置
+```swift
+let commandCenter = MPRemoteCommandCenter.shared()
+commandCenter.playCommand.isEnabled = true
+commandCenter.pauseCommand.isEnabled = true
+commandCenter.togglePlayPauseCommand.isEnabled = true
+
+commandCenter.playCommand.addTarget { event in
+    // 处理播放命令 - 开始/恢复计时
+    return .success
+}
+```
+
+#### 4. 音频播放时机控制
+```swift
+// 等待音频真正开始播放后设置锁屏信息
+DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+    if player.isPlaying {
+        self.updateInitialNowPlayingInfo()
+    }
+}
+```
+
+### 技术要点
+
+1. **Background Modes capability是必须的**：没有这个配置，系统不会识别应用为音频播放应用
+2. **playbackState必须设为.playing**：这是激活锁屏控件的关键
+3. **playbackRate必须为1.0**：0.0会导致锁屏组件不显示
+4. **必须等音频真正开始播放**：过早设置锁屏信息会失败
+
+### 成功验证
+- 启动计时器后锁屏能看到"SimpleClock 计时器"的音乐控制组件
+- 锁屏播放/暂停按钮可以控制计时器
+- 显示计时器图标和进度信息
+- 用户确认："现在一切正常了"
+
+### 重要教训
+**Xcode的Target配置和代码配置必须同时正确**，仅有代码配置而没有项目capability配置是不够的。
+
 ## Swift版本和依赖
 
 - Swift 5.7+（兼容iOS 15.6）
 - SwiftUI 3.0（iOS 15兼容版本）
 - AVFoundation（语音播报和识别）
 - UserNotifications（本地通知）
+- MediaPlayer（锁屏音乐控制）
 - SwiftData（可选，用于设置持久化）

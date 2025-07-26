@@ -29,9 +29,22 @@
 		3C64DC3A2E326A6E00422974 /* SimpleClockUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SimpleClockUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		3C53FA0E2E354DB900BC9228 /* Exceptions for "SimpleClock" folder in "SimpleClock" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 3C64DC202E326A6C00422974 /* SimpleClock */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		3C64DC232E326A6C00422974 /* SimpleClock */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3C53FA0E2E354DB900BC9228 /* Exceptions for "SimpleClock" folder in "SimpleClock" target */,
+			);
 			path = SimpleClock;
 			sourceTree = "<group>";
 		};
@@ -400,17 +413,17 @@
 				DEVELOPMENT_TEAM = JL2HZJZA32;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SimpleClock/Info.plist;
+				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.sunfan.SimpleClock.audio-playback com.sunfan.SimpleClock.background-refresh";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "简单时钟需要使用麦克风进行语音识别，以便您通过语音指令控制计时器功能，包括开始、暂停、恢复和停止计时。这提供了更好的无障碍体验。";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "简单时钟需要使用语音识别功能来识别您的语音指令，例如\"开始计时\"、\"暂停计时\"、\"恢复计时\"和\"停止计时\"。这使得视障用户能够方便地控制计时器，提供更好的无障碍体验。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UIBackgroundModes = (
-					audio,
-					"background-processing",
-				);
+				INFOPLIST_KEY_UIBackgroundModes = "audio background-processing background-fetch";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportsDocumentBrowser = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -434,17 +447,17 @@
 				DEVELOPMENT_TEAM = JL2HZJZA32;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SimpleClock/Info.plist;
+				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.sunfan.SimpleClock.audio-playback com.sunfan.SimpleClock.background-refresh";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "简单时钟需要使用麦克风进行语音识别，以便您通过语音指令控制计时器功能，包括开始、暂停、恢复和停止计时。这提供了更好的无障碍体验。";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "简单时钟需要使用语音识别功能来识别您的语音指令，例如\"开始计时\"、\"暂停计时\"、\"恢复计时\"和\"停止计时\"。这使得视障用户能够方便地控制计时器，提供更好的无障碍体验。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UIBackgroundModes = (
-					audio,
-					"background-processing",
-				);
+				INFOPLIST_KEY_UIBackgroundModes = "audio background-processing background-fetch";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportsDocumentBrowser = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
