@@ -29,18 +29,18 @@ class AudioSessionManager: ObservableObject {
     /// 配置音频会话以支持后台播放
     private func setupAudioSession() {
         do {
-            // 重要：根据iOS最佳实践，使用.playback类别不带.mixWithOthers选项
-            // 因为.mixWithOthers会导致MPNowPlayingInfoCenter被忽略！
+            // 重要：根据iOS最佳实践，使用.playback类别支持后台播放和锁屏控制
             try audioSession.setCategory(
                 .playback,  // 播放类别，支持后台播放
-                mode: .default,  // 使用默认模式，比spokenAudio更适合音乐播放
+                mode: .default,  // 使用默认模式，适合音乐播放和锁屏控制
                 options: [
-                    .duckOthers  // 只降低其他应用音量，不混音
+                    .allowAirPlay,  // 允许AirPlay
+                    .allowBluetoothA2DP  // 允许蓝牙音频
                 ]
             )
             
             currentCategory = .playback
-            logger.info("音频会话配置成功：类别=播放，模式=默认（支持锁屏控制）")
+            logger.info("音频会话配置成功：类别=播放，模式=默认（支持锁屏控制和AirPlay）")
             
         } catch {
             logger.error("配置音频会话失败: \(error.localizedDescription)")
@@ -146,25 +146,35 @@ class AudioSessionManager: ObservableObject {
         
         switch type {
         case .began:
-            logger.info("音频中断开始")
-            // 音频中断开始，暂停音频播放
-            deactivateAudioSession()
+            logger.info("🎵 音频中断开始 - 音频会话将暂停")
+            // 音频中断开始，标记会话状态但不主动停用
+            isAudioSessionActive = false
             
         case .ended:
-            logger.info("音频中断结束")
-            // 音频中断结束，尝试恢复音频播放
+            logger.info("🎵 音频中断结束 - 检查是否应该恢复播放")
+            // 音频中断结束，检查是否应该恢复
             if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
                 let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
                 if options.contains(.shouldResume) {
-                    // 系统建议恢复播放
+                    logger.info("🎵 系统建议恢复播放，重新激活音频会话")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         self.activateAudioSession()
+                        NotificationCenter.default.post(name: .audioSessionResumed, object: nil)
                     }
+                } else {
+                    logger.info("🎵 系统不建议恢复播放，等待手动恢复")
+                }
+            } else {
+                // 没有恢复选项，延迟尝试恢复
+                logger.info("🎵 没有恢复选项，延迟尝试重新激活音频会话")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    self.activateAudioSession()
+                    NotificationCenter.default.post(name: .audioSessionResumed, object: nil)
                 }
             }
             
         @unknown default:
-            logger.warning("未知的音频中断类型")
+            logger.warning("🎵 未知的音频中断类型")
         }
     }
     
@@ -191,7 +201,12 @@ class AudioSessionManager: ObservableObject {
     @objc private func handleAppWillResignActive() {
         logger.info("应用即将进入后台")
         // 确保音频会话在后台保持活跃
-        activateAudioSession()
+        // 注意：进入后台时不要重新配置音频会话，这会导致-50错误
+        // 只确保会话保持活跃
+        if !isAudioSessionActive {
+            activateAudioSession()
+        }
+        logger.info("🎵 后台音频会话保持活跃")
     }
     
     @objc private func handleAppDidBecomeActive() {
@@ -205,6 +220,11 @@ class AudioSessionManager: ObservableObject {
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
+}
+
+// MARK: - Notification Names
+extension Notification.Name {
+    static let audioSessionResumed = Notification.Name("audioSessionResumed")
 }
 
 // MARK: - 背景任务支持

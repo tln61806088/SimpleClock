@@ -172,6 +172,9 @@ class TimerViewModel: ObservableObject {
     func startTimer() {
         guard !isRunning else { return }
         
+        // 检查后台App刷新权限
+        checkBackgroundPermissionBeforeStart()
+        
         if startTime == nil {
             // 第一次启动
             startTime = Date()
@@ -285,6 +288,11 @@ class TimerViewModel: ObservableObject {
             if Int(elapsed) % 30 == 0 {
                 checkContinuousAudioStatus()
             }
+            
+            // 每10秒强化检查后台播放状态
+            if Int(elapsed) % 10 == 0 {
+                continuousAudioPlayer.ensureBackgroundPlayback()
+            }
         }
     }
     
@@ -337,11 +345,18 @@ class TimerViewModel: ObservableObject {
         remainingSeconds = settings.duration * 60
     }
     
-    /// 请求通知权限
+    /// 请求通知权限（重新检查和请求）
     private func requestNotificationPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            if let error = error {
-                print("通知权限请求失败: \(error)")
+            DispatchQueue.main.async {
+                if let error = error {
+                    self.logger.error("通知权限请求失败: \(error.localizedDescription)")
+                } else {
+                    self.logger.info("计时器通知权限状态: \(granted ? "已授权" : "被拒绝")")
+                    if !granted {
+                        self.logger.warning("⚠️ 通知权限被拒绝，将无法在后台发送计时提醒")
+                    }
+                }
             }
         }
     }
@@ -485,35 +500,57 @@ class TimerViewModel: ObservableObject {
         }
     }
     
-    /// 更新锁屏媒体信息
+    /// 检查后台权限（计时器启动前）
+    private func checkBackgroundPermissionBeforeStart() {
+        let backgroundRefreshStatus = UIApplication.shared.backgroundRefreshStatus
+        
+        switch backgroundRefreshStatus {
+        case .available:
+            logger.info("🔄 后台App刷新权限：已开启")
+        case .denied:
+            logger.warning("⚠️ 后台App刷新权限被拒绝！音乐可能在后台停止")
+            logger.info("📱 请前往：设置 > 通用 > 后台App刷新 > SimpleClock")
+        case .restricted:
+            logger.warning("⚠️ 后台App刷新权限受限！音乐可能在后台停止")
+        @unknown default:
+            logger.warning("⚠️ 后台App刷新权限状态未知")
+        }
+    }
+    
+    /// 更新锁屏媒体信息（参考GitHub最佳实践）
     private func updateNowPlayingInfo() {
         // 只有在计时运行或暂停时才显示计时器信息
         if startTime != nil {
             let title: String
             let artist: String
+            let playbackRate: Float
             
             if isRunning {
                 let minutes = remainingSeconds / 60
                 let seconds = remainingSeconds % 60
-                title = "SimpleClock计时器"
+                title = "SimpleClock 计时器"
                 artist = String(format: "剩余: %02d:%02d", minutes, seconds)
+                playbackRate = 1.0  // 正在播放
             } else {
-                title = "SimpleClock计时器"
+                title = "SimpleClock 计时器"
                 artist = "计时已暂停"
+                playbackRate = 0.0  // 暂停状态
             }
             
-            // 直接更新MPNowPlayingInfoCenter
+            // 根据SwiftAudioEx最佳实践配置完整的媒体信息
             var nowPlayingInfo = [String: Any]()
             
+            // 基础媒体信息
             nowPlayingInfo[MPMediaItemPropertyTitle] = title
             nowPlayingInfo[MPMediaItemPropertyArtist] = artist
             nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = "SimpleClock"
+            nowPlayingInfo[MPMediaItemPropertyGenre] = "计时器"
             
-            // 播放状态 - 音乐始终在播放，这里显示计时状态
-            nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0  // 音乐一直播放
+            // 播放状态（关键：这决定了锁屏控件的显示）
+            nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = playbackRate
             nowPlayingInfo[MPNowPlayingInfoPropertyMediaType] = MPNowPlayingInfoMediaType.audio.rawValue
             
-            // 时间信息
+            // 时间信息（用于进度条显示）
             let elapsedTime = pausedTime > 0 ? pausedTime : 
                              (startTime != nil ? Date().timeIntervalSince(startTime!) : 0)
             let totalDuration = TimeInterval(settings.duration * 60)
@@ -521,18 +558,32 @@ class TimerViewModel: ObservableObject {
             nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsedTime
             nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = totalDuration
             
-            // 添加专辑封面
-            if let image = UIImage(systemName: "timer") {
-                nowPlayingInfo[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: image.size) { _ in
-                    return image
+            // 添加自定义图标作为专辑封面
+            if let image = UIImage(systemName: "timer.circle.fill") {
+                // 创建更大的图标以便在锁屏显示
+                let size = CGSize(width: 200, height: 200)
+                let renderer = UIGraphicsImageRenderer(size: size)
+                let resizedImage = renderer.image { context in
+                    image.draw(in: CGRect(origin: .zero, size: size))
+                }
+                
+                nowPlayingInfo[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: size) { _ in
+                    return resizedImage
                 }
             }
             
-            MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
-            logger.info("🎵 更新锁屏媒体信息: \(title)")
+            // 立即设置到系统（确保同步更新）
+            DispatchQueue.main.async {
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+                self.logger.info("🎵 成功更新锁屏媒体信息: \(title) - 播放率: \(playbackRate)")
+            }
+        } else {
+            // 没有计时任务时清除锁屏信息
+            DispatchQueue.main.async {
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+                self.logger.info("🎵 清除锁屏媒体信息")
+            }
         }
-        // 注意：没有计时任务时，不设置任何锁屏信息
-        // 这样锁屏就不会显示播放控件
     }
 }
 
