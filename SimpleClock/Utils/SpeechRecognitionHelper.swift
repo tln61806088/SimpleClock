@@ -99,9 +99,13 @@ class SpeechRecognitionHelper: NSObject {
     
     /// 获取最后识别的文本
     func getLastRecognizedText() -> String? {
-        let text = lastRecognizedText
-        lastRecognizedText = nil  // 清空，避免重复使用
-        return text
+        // 不清空结果，让调用方决定何时清空
+        return lastRecognizedText
+    }
+    
+    /// 清空识别结果
+    func clearLastRecognizedText() {
+        lastRecognizedText = nil
     }
     
     // MARK: - Private Methods
@@ -172,16 +176,20 @@ class SpeechRecognitionHelper: NSObject {
         if let result = result {
             let recognizedText = result.bestTranscription.formattedString
             
-            // 存储最新的识别结果（即使是部分结果）
-            let normalizedCommand = normalizeCommand(recognizedText)
-            print("原始语音: \(recognizedText) -> 归一化指令: \(normalizedCommand)")
-            lastRecognizedText = normalizedCommand
-            
-            // 如果设置了实时回调，也可以调用
-            if result.isFinal {
-                DispatchQueue.main.async {
-                    self.completionHandler?(normalizedCommand)
+            // 只保存非空的识别结果
+            if !recognizedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                let normalizedCommand = normalizeCommand(recognizedText)
+                print("原始语音: \(recognizedText) -> 归一化指令: \(normalizedCommand)")
+                lastRecognizedText = normalizedCommand
+                
+                // 如果设置了实时回调，也可以调用
+                if result.isFinal {
+                    DispatchQueue.main.async {
+                        self.completionHandler?(normalizedCommand)
+                    }
                 }
+            } else {
+                print("原始语音: \(recognizedText) -> 归一化指令: (空)")
             }
         }
         
@@ -190,18 +198,18 @@ class SpeechRecognitionHelper: NSObject {
             // 检查是否是"没有检测到语音"的错误
             if (error as NSError).code == 1110 {
                 // 只有在没有识别结果时才设置"未检测到语音"
-                if lastRecognizedText == nil {
+                if lastRecognizedText == nil || lastRecognizedText?.isEmpty == true {
                     lastRecognizedText = "未检测到语音"
                     DispatchQueue.main.async {
                         self.completionHandler?("未检测到语音")
                     }
                 }
             } else if (error as NSError).code == 301 {
-                // Code 301 是主动取消，不要覆盖已有的识别结果
-                print("语音识别被主动取消，保留已识别的结果")
+                // Code 301 是主动取消，保留已有的识别结果
+                print("语音识别被主动取消，保留已识别的结果：\(lastRecognizedText ?? "无")")
             } else {
-                // 其他错误才设置为识别失败
-                if lastRecognizedText == nil {
+                // 其他错误，只有在没有有效识别结果时才设置为识别失败
+                if lastRecognizedText == nil || lastRecognizedText?.isEmpty == true {
                     lastRecognizedText = "识别失败"
                     DispatchQueue.main.async {
                         self.completionHandler?("识别失败")
@@ -232,8 +240,8 @@ class SpeechRecognitionHelper: NSObject {
             return "恢复计时"
         }
         
-        // 结束相关指令
-        if lowercaseText.contains("结束") {
+        // 结束/停止相关指令
+        if lowercaseText.contains("结束") || lowercaseText.contains("停止") {
             return "结束计时"
         }
         
@@ -247,17 +255,23 @@ class SpeechRecognitionHelper: NSObject {
             return "剩余时间"
         }
         
-        // 计时设置指令
+        // 计时设置指令 - 优先检查复合指令
+        if let duration = extractDuration(from: text), let interval = extractInterval(from: text) {
+            return "计时\(duration)分钟间隔\(interval)分钟"
+        }
+        
+        // 单独的计时设置指令
         if let duration = extractDuration(from: text) {
             return "计时\(duration)分钟"
         }
         
-        // 间隔设置指令
+        // 单独的间隔设置指令
         if let interval = extractInterval(from: text) {
             return "间隔\(interval)分钟"
         }
         
-        return "未识别的指令：\(text)"
+        // 返回原始识别文本，而不是"未识别的指令："前缀
+        return text
     }
     
     /// 从文本中提取计时时长

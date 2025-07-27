@@ -96,7 +96,29 @@ class SpeechHelper: NSObject, @unchecked Sendable {
         return SilentModeDetector.shared.isSilentMode
     }
     
-    /// 播报文本内容 - 支持后台播放
+    /// 为锁屏状态配置音频会话
+    private func configureAudioSessionForLockScreen() {
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            
+            // 关键：使用playback类别并设置mixWithOthers选项
+            // 这样可以在锁屏状态下播放TTS，同时不影响其他音频
+            try audioSession.setCategory(
+                .playback,
+                mode: .spokenAudio,
+                options: [.mixWithOthers, .allowAirPlay, .allowBluetoothA2DP]
+            )
+            
+            // 激活音频会话
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            
+            logger.info("🔒 锁屏TTS音频会话配置成功")
+        } catch {
+            logger.error("🔒 锁屏TTS音频会话配置失败: \(error.localizedDescription)")
+        }
+    }
+    
+    /// 播报文本内容 - 支持锁屏状态下的后台播放
     /// - Parameter text: 要播报的文本
     /// - Parameter rate: 语速，默认为正常速度
     /// - Parameter volume: 音量，默认为1.0
@@ -112,12 +134,13 @@ class SpeechHelper: NSObject, @unchecked Sendable {
             synthesizer.stopSpeaking(at: .immediate)
         }
         
+        // 强制配置音频会话以支持锁屏TTS
+        configureAudioSessionForLockScreen()
+        
         // 只在音频会话未激活时才激活（避免重复激活导致卡顿）
         if !audioSessionManager.isAudioSessionActive {
             audioSessionManager.activateAudioSession()
         }
-        
-        // 音频类别已支持后台播放，不需要手动管理后台任务
         
         let utterance = AVSpeechUtterance(string: text)
         utterance.rate = rate
@@ -160,7 +183,8 @@ class SpeechHelper: NSObject, @unchecked Sendable {
     ///   - duration: 计时时长（分钟）
     ///   - interval: 提醒间隔（分钟）
     func speakTimerSettings(duration: Int, interval: Int) {
-        let text = "计时时长\(duration)分钟，提醒间隔\(interval)分钟"
+        let intervalText = interval == 0 ? "不间隔" : "间隔\(interval)分钟"
+        let text = "计时\(duration)分钟，\(intervalText)"
         speak(text)
     }
     
