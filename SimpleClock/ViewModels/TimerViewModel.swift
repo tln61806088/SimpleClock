@@ -419,6 +419,22 @@ class TimerViewModel: ObservableObject {
         content.body = body
         content.sound = .default
         
+        // 设置通知图标和类别
+        if #available(iOS 15.0, *) {
+            content.interruptionLevel = .active
+            content.categoryIdentifier = "TIMER_NOTIFICATION"
+        }
+        
+        // 添加通知图标附件
+        if let iconURL = Bundle.main.url(forResource: "NotificationIcon", withExtension: "png") {
+            do {
+                let attachment = try UNNotificationAttachment(identifier: "timer-icon", url: iconURL, options: nil)
+                content.attachments = [attachment]
+            } catch {
+                logger.error("添加通知图标失败: \(error.localizedDescription)")
+            }
+        }
+        
         let calendar = Calendar.current
         let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
@@ -438,6 +454,22 @@ class TimerViewModel: ObservableObject {
         content.title = "计时结束"
         content.body = "您设置的\(settings.duration)分钟计时已完成"
         content.sound = .default
+        
+        // 设置通知图标和类别
+        if #available(iOS 15.0, *) {
+            content.interruptionLevel = .timeSensitive  // 计时结束是时间敏感的
+            content.categoryIdentifier = "TIMER_COMPLETION"
+        }
+        
+        // 添加通知图标附件
+        if let iconURL = Bundle.main.url(forResource: "NotificationIcon", withExtension: "png") {
+            do {
+                let attachment = try UNNotificationAttachment(identifier: "timer-completion-icon", url: iconURL, options: nil)
+                content.attachments = [attachment]
+            } catch {
+                logger.error("添加完成通知图标失败: \(error.localizedDescription)")
+            }
+        }
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
         let request = UNNotificationRequest(identifier: "immediate_completion", content: content, trigger: trigger)
