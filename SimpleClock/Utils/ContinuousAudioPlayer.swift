@@ -84,15 +84,7 @@ class ContinuousAudioPlayer: NSObject {
         // 确保音频会话配置正确且已激活
         AudioSessionManager.shared.activateAudioSession()
         
-        // 重要：在开始播放前，确保音频会话配置支持后台播放
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [.allowAirPlay, .allowBluetoothA2DP])
-            try session.setActive(true)
-            logger.info("🎵 音频会话重新配置成功，开始播放")
-        } catch {
-            logger.error("🎵 音频会话配置失败: \(error.localizedDescription)")
-        }
+        // 注意：音频会话已通过AudioSessionManager统一管理，避免重复配置
         
         // 确保播放器已准备好
         let prepared = player.prepareToPlay()

@@ -103,41 +103,11 @@ class PermissionManager: NSObject {
     /// 配置最高优先级音频会话
     private func configureHighestPriorityAudioSession() {
         do {
-            let audioSession = AVAudioSession.sharedInstance()
-            
-            // 使用最高优先级配置
-            if #available(iOS 16.0, *) {
-                try audioSession.setCategory(
-                    .playback,
-                    mode: .spokenAudio,
-                    options: [
-                        .duckOthers,                    // 降低其他应用音量
-                        .interruptSpokenAudioAndMixWithOthers,  // 中断其他语音音频
-                        .allowBluetooth,                // 允许蓝牙
-                        .allowBluetoothA2DP,           // 允许蓝牙A2DP
-                        .allowAirPlay,                 // 允许AirPlay
-                        .overrideMutedMicrophoneInterruption  // 覆盖静音麦克风中断
-                    ]
-                )
-            } else {
-                try audioSession.setCategory(
-                    .playback,
-                    options: [
-                        .duckOthers,
-                        .allowBluetooth,
-                        .allowBluetoothA2DP,
-                        .allowAirPlay
-                    ]
-                )
-            }
-            
-            // 设置最高优先级
-            try audioSession.setActive(true, options: [.notifyOthersOnDeactivation])
-            
-            print("✅ 最高优先级音频会话配置成功")
-            
+            // 使用AudioSessionManager统一管理音频会话，避免冲突
+            AudioSessionManager.shared.activateAudioSession()
+            print("✅ 使用统一音频会话管理")
         } catch {
-            print("❌ 音频会话配置失败: \(error.localizedDescription)")
+            print("❌ 音频会话激活失败: \(error.localizedDescription)")
         }
     }
     
