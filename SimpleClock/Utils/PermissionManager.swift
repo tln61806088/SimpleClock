@@ -102,13 +102,9 @@ class PermissionManager: NSObject {
     
     /// 配置最高优先级音频会话
     private func configureHighestPriorityAudioSession() {
-        do {
-            // 使用AudioSessionManager统一管理音频会话，避免冲突
-            AudioSessionManager.shared.activateAudioSession()
-            print("✅ 使用统一音频会话管理")
-        } catch {
-            print("❌ 音频会话激活失败: \(error.localizedDescription)")
-        }
+        // 使用AudioSessionManager统一管理音频会话，避免冲突
+        AudioSessionManager.shared.activateAudioSession()
+        print("✅ 使用统一音频会话管理")
     }
     
     /// 申请后台应用刷新权限
