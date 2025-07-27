@@ -81,6 +81,9 @@ struct SimpleClockApp: App {
     
     /// 请求通知权限
     private func requestNotificationPermission() {
+        // 首先注册通知类别（支持自定义图标和操作）
+        setupNotificationCategories()
+        
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             DispatchQueue.main.async {
                 if let error = error {
@@ -93,6 +96,45 @@ struct SimpleClockApp: App {
                 }
             }
         }
+    }
+    
+    /// 设置通知类别和图标
+    private func setupNotificationCategories() {
+        let center = UNUserNotificationCenter.current()
+        
+        // 定义通知操作
+        let stopAction = UNNotificationAction(
+            identifier: "STOP_TIMER",
+            title: "停止计时",
+            options: [.foreground]
+        )
+        
+        let extendAction = UNNotificationAction(
+            identifier: "EXTEND_TIMER",
+            title: "延长5分钟",
+            options: []
+        )
+        
+        // 创建计时提醒类别
+        let timerCategory = UNNotificationCategory(
+            identifier: "TIMER_NOTIFICATION",
+            actions: [stopAction, extendAction],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+        
+        // 创建计时完成类别
+        let completionCategory = UNNotificationCategory(
+            identifier: "TIMER_COMPLETION",
+            actions: [stopAction],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+        
+        // 注册类别
+        center.setNotificationCategories([timerCategory, completionCategory])
+        
+        print("📱 通知类别设置完成 - 支持自定义操作和图标")
     }
     
     /// 请求语音识别权限
