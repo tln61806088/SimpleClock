@@ -476,6 +476,9 @@ class TimerViewModel: ObservableObject {
         DispatchQueue.main.async {
             if !self.isRunning {
                 self.startTimer()
+                // 立即播报，使用优化的锁屏TTS配置
+                self.logger.info("🎵 锁屏播放 - 开始播报确认")
+                SpeechHelper.shared.speak("恢复计时")
             }
         }
     }
@@ -485,6 +488,9 @@ class TimerViewModel: ObservableObject {
         DispatchQueue.main.async {
             if self.isRunning {
                 self.pauseTimer()
+                // 立即播报，使用优化的锁屏TTS配置
+                self.logger.info("🎵 锁屏暂停 - 开始播报确认")
+                SpeechHelper.shared.speak("暂停计时")
             }
         }
     }
@@ -494,8 +500,14 @@ class TimerViewModel: ObservableObject {
         DispatchQueue.main.async {
             if self.isRunning {
                 self.pauseTimer()
+                // 立即播报，使用优化的锁屏TTS配置
+                self.logger.info("🎵 锁屏切换(暂停) - 开始播报确认")
+                SpeechHelper.shared.speak("暂停计时")
             } else {
                 self.startTimer()
+                // 立即播报，使用优化的锁屏TTS配置
+                self.logger.info("🎵 锁屏切换(开始) - 开始播报确认")
+                SpeechHelper.shared.speak("恢复计时")
             }
         }
     }
