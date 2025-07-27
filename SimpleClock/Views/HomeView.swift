@@ -34,7 +34,7 @@ struct HomeView: View {
                         VStack {
                             Spacer(minLength: 0)
                             MainControlButtonsView(viewModel: timerViewModel)
-                            Spacer()
+                            Spacer(minLength: 16) // 与主控制按钮保持一致的间距
                             VoiceRecognitionButton(viewModel: timerViewModel)
                             Spacer(minLength: geometry.safeAreaInsets.bottom)
                         }

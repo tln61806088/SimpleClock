@@ -28,17 +28,18 @@ struct VoiceRecognitionButton: View {
         VStack(spacing: 8) {
             // 主按钮 - 改为长方形
             ZStack {
-                // 背景长方形
+                // 背景长方形 - 固定高度，避免尺寸变化
                 RoundedRectangle(cornerRadius: 12)
                     .fill(isRecording ? Color.gray.opacity(0.8) : Color.gray)
-                    .frame(maxWidth: .infinity, minHeight: 120, maxHeight: 120)
+                    .frame(maxWidth: .infinity, minHeight: 180, maxHeight: 180)
                 
-                // 录音动画波纹 - 改为长方形
+                // 录音动画波纹 - 固定尺寸，避免影响布局
                 if isRecording {
                     ForEach(0..<3, id: \.self) { index in
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.white.opacity(0.6), lineWidth: 2)
-                            .scaleEffect(recordingAnimation ? 1.05 : 0.95)
+                            .frame(maxWidth: .infinity, minHeight: 180, maxHeight: 180)
+                            .scaleEffect(1.0)
                             .opacity(recordingAnimation ? 0.0 : 0.8)
                             .animation(
                                 .easeOut(duration: 1.0)
@@ -341,7 +342,8 @@ struct VoiceRecognitionButton: View {
             if viewModel.isRunning {
                 print("语音指令：暂停计时")
                 viewModel.pauseTimer()
-                speakConfirmationOnly("暂停计时")
+                // 暂停计时时，保持后台音乐继续播放
+                speakConfirmationOnlyWithAudio("暂停计时", shouldMaintainAudio: true)
             } else {
                 speakConfirmationOnly("计时器未运行")
             }
@@ -440,6 +442,33 @@ struct VoiceRecognitionButton: View {
         } else {
             // 没有播报内容，立即恢复后台音频
             resumeBackgroundAudioIfNeeded()
+        }
+    }
+    
+    /// 播报确认信息，支持自定义音频维持逻辑
+    private func speakConfirmationOnlyWithAudio(_ message: String, shouldMaintainAudio: Bool) {
+        if !message.isEmpty {
+            SpeechHelper.shared.speak(message)
+            
+            // 等待播报完成后处理音频
+            let estimatedSpeechDuration = Double(message.count) * 0.15 + 1.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + estimatedSpeechDuration) {
+                if shouldMaintainAudio {
+                    // 暂停计时时，强制恢复后台音乐播放
+                    print("语音暂停计时：强制恢复后台音乐")
+                    ContinuousAudioPlayer.shared.startContinuousPlayback()
+                } else {
+                    self.resumeBackgroundAudioIfNeeded()
+                }
+            }
+        } else {
+            if shouldMaintainAudio {
+                // 没有播报内容，立即恢复后台音频
+                print("语音暂停计时：立即恢复后台音乐")
+                ContinuousAudioPlayer.shared.startContinuousPlayback()
+            } else {
+                resumeBackgroundAudioIfNeeded()
+            }
         }
     }
     
