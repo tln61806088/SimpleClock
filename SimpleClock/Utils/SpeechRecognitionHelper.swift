@@ -133,14 +133,8 @@ class SpeechRecognitionHelper: NSObject {
         recognitionTask = nil
         
         // 配置音频会话 - iOS版本兼容性处理
-        let audioSession = AVAudioSession.sharedInstance()
-        if #available(iOS 16.0, *) {
-            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-        } else {
-            // iOS 15.x fallback
-            try audioSession.setCategory(.record, options: .duckOthers)
-        }
-        try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        // 使用AudioSessionManager统一管理音频会话，切换到录音模式
+        AudioSessionManager.shared.enableRecordingMode()
         
         // 创建识别请求
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()

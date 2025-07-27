@@ -98,24 +98,9 @@ class SpeechHelper: NSObject, @unchecked Sendable {
     
     /// 为锁屏状态配置音频会话
     private func configureAudioSessionForLockScreen() {
-        do {
-            let audioSession = AVAudioSession.sharedInstance()
-            
-            // 关键：使用playback类别并设置mixWithOthers选项
-            // 这样可以在锁屏状态下播放TTS，同时不影响其他音频
-            try audioSession.setCategory(
-                .playback,
-                mode: .spokenAudio,
-                options: [.mixWithOthers, .allowAirPlay, .allowBluetoothA2DP]
-            )
-            
-            // 激活音频会话
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-            
-            logger.info("🔒 锁屏TTS音频会话配置成功")
-        } catch {
-            logger.error("🔒 锁屏TTS音频会话配置失败: \(error.localizedDescription)")
-        }
+        // 使用AudioSessionManager统一管理，临时切换到语音模式
+        AudioSessionManager.shared.enableSpeechMode()
+        logger.info("🔒 锁屏TTS使用统一音频会话管理")
     }
     
     /// 播报文本内容 - 支持锁屏状态下的后台播放

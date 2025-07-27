@@ -105,6 +105,26 @@ class AudioSessionManager: ObservableObject {
         setupAudioSession()
     }
     
+    /// 临时激活语音播报模式（TTS使用）
+    func enableSpeechMode() {
+        do {
+            // 临时配置用于TTS语音播报，支持与其他音频混音
+            try audioSession.setCategory(
+                .playback,
+                mode: .spokenAudio,
+                options: [
+                    .mixWithOthers,      // 与其他音频混音
+                    .allowAirPlay,       // 允许AirPlay
+                    .allowBluetoothA2DP  // 允许蓝牙音频
+                ]
+            )
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            logger.info("临时切换到语音播报模式（TTS）")
+        } catch {
+            logger.error("切换到语音播报模式失败: \(error.localizedDescription)")
+        }
+    }
+    
     /// 处理音频中断
     private func setupNotifications() {
         NotificationCenter.default.addObserver(

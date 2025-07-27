@@ -425,15 +425,7 @@ class TimerViewModel: ObservableObject {
             content.categoryIdentifier = "TIMER_NOTIFICATION"
         }
         
-        // 添加通知图标附件
-        if let iconURL = Bundle.main.url(forResource: "NotificationIcon", withExtension: "png") {
-            do {
-                let attachment = try UNNotificationAttachment(identifier: "timer-icon", url: iconURL, options: nil)
-                content.attachments = [attachment]
-            } catch {
-                logger.error("添加通知图标失败: \(error.localizedDescription)")
-            }
-        }
+        // iOS通知图标会自动使用AppIcon，无需手动添加附件
         
         let calendar = Calendar.current
         let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
@@ -461,15 +453,7 @@ class TimerViewModel: ObservableObject {
             content.categoryIdentifier = "TIMER_COMPLETION"
         }
         
-        // 添加通知图标附件
-        if let iconURL = Bundle.main.url(forResource: "NotificationIcon", withExtension: "png") {
-            do {
-                let attachment = try UNNotificationAttachment(identifier: "timer-completion-icon", url: iconURL, options: nil)
-                content.attachments = [attachment]
-            } catch {
-                logger.error("添加完成通知图标失败: \(error.localizedDescription)")
-            }
-        }
+        // iOS通知图标会自动使用AppIcon，无需手动添加附件
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
         let request = UNNotificationRequest(identifier: "immediate_completion", content: content, trigger: trigger)
