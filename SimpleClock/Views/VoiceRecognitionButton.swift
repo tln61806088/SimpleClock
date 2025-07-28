@@ -26,55 +26,176 @@ struct VoiceRecognitionButton: View {
     @State private var recordingTimer: Timer?
     
     var body: some View {
-        VStack(spacing: 8) {
-            // 主按钮 - 改为长方形
+        VStack(spacing: 12) {
+            // 主按钮 - 美化设计
             ZStack {
-                // 背景长方形 - 固定高度，避免尺寸变化
-                RoundedRectangle(cornerRadius: 12)
-                    .fill((isRecording || isPreparingToRecord) ? Color.gray.opacity(0.8) : Color.gray)
+                // 主背景渐变
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: buttonGradientColors),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 180, maxHeight: 180)
+                    .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 6)
+                
+                // 光泽效果overlay
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.4),
+                                .clear,
+                                .black.opacity(0.1)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
                     .frame(maxWidth: .infinity, minHeight: 180, maxHeight: 180)
                 
-                // 录音动画波纹 - 固定尺寸，避免影响布局
+                // 录音动画波纹 - 美化效果
                 if isRecording {
-                    ForEach(0..<3, id: \.self) { index in
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.white.opacity(0.6), lineWidth: 2)
+                    ForEach(0..<4, id: \.self) { index in
+                        RoundedRectangle(cornerRadius: 24)
+                            .stroke(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white.opacity(0.8),
+                                        .white.opacity(0.4)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 3
+                            )
                             .frame(maxWidth: .infinity, minHeight: 180, maxHeight: 180)
-                            .scaleEffect(1.0)
-                            .opacity(recordingAnimation ? 0.0 : 0.8)
+                            .scaleEffect(recordingAnimation ? 1.3 : 1.0)
+                            .opacity(recordingAnimation ? 0.0 : 0.9)
                             .animation(
-                                .easeOut(duration: 1.0)
+                                .easeOut(duration: 1.5)
                                 .repeatForever(autoreverses: false)
-                                .delay(Double(index) * 0.2),
+                                .delay(Double(index) * 0.3),
                                 value: recordingAnimation
                             )
                     }
                 }
                 
                 // 图标和文字
-                HStack(spacing: 16) {
-                    Image(systemName: isRecording ? "waveform" : (isPreparingToRecord ? "speaker.wave.2" : "mic.fill"))
-                        .font(.system(size: 24, weight: .medium))
-                        .foregroundColor(.white)
+                VStack(spacing: 12) {
+                    // 语音图标
+                    ZStack {
+                        // 图标背景圆形
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white.opacity(0.2),
+                                        .white.opacity(0.1)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 60, height: 60)
+                        
+                        Image(systemName: currentIcon)
+                            .font(.system(size: 28, weight: .semibold))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [.white, .white.opacity(0.9)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                            .scaleEffect(isRecording ? 1.1 : 1.0)
+                            .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isRecording)
+                    }
                     
-                    Text(isRecording ? "录音中" : (isPreparingToRecord ? "请说话" : "语音识别"))
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white)
+                    // 状态文字
+                    Text(currentStateText)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                gradient: Gradient(colors: [.white, .white.opacity(0.9)]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
                         .multilineTextAlignment(.center)
                 }
             }
             .onTapGesture {
                 handleTapGesture()
             }
+            .scaleEffect(isPressed ? 0.98 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: isPressed)
+            .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+                isPressed = pressing
+            }, perform: {})
             
-            Text(isRecording ? "录音中，点击结束" : (isPreparingToRecord ? "正在播报提示..." : "点击说话"))
-                .font(.caption)
+            // 提示文字
+            Text(currentHintText)
+                .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 8)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("语音识别按钮")
         .accessibilityHint("点击开始语音识别，再次点击结束")
         .accessibilityAddTraits(.isButton)
+    }
+    
+    @State private var isPressed = false
+    
+    /// 当前按钮渐变色
+    private var buttonGradientColors: [Color] {
+        if isRecording {
+            return [Color.red, Color.red.opacity(0.8), Color.orange]
+        } else if isPreparingToRecord {
+            return [Color.orange, Color.orange.opacity(0.8), Color.yellow]
+        } else {
+            return [Color.purple, Color.purple.opacity(0.8), Color.blue]
+        }
+    }
+    
+    /// 当前图标
+    private var currentIcon: String {
+        if isRecording {
+            return "waveform.circle.fill"
+        } else if isPreparingToRecord {
+            return "speaker.wave.3.fill"
+        } else {
+            return "mic.circle.fill"
+        }
+    }
+    
+    /// 当前状态文字
+    private var currentStateText: String {
+        if isRecording {
+            return "录音中"
+        } else if isPreparingToRecord {
+            return "请说话"
+        } else {
+            return "语音识别"
+        }
+    }
+    
+    /// 当前提示文字
+    private var currentHintText: String {
+        if isRecording {
+            return "录音中，点击结束"
+        } else if isPreparingToRecord {
+            return "正在播报提示，请稍候..."
+        } else {
+            return "点击开始语音识别\n说出您的计时要求"
+        }
     }
     
     /// 处理点击手势

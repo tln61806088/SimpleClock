@@ -9,33 +9,100 @@ struct DigitalClockView: View {
     var isCompactMode: Bool = false
     
     var body: some View {
-        // 暂时只显示正常时钟，不处理倒计时模式
-        HStack(spacing: 8) {
-            // 时
-            Text(hourString)
-                .font(.system(size: 60, weight: .medium, design: .monospaced))
-                .foregroundColor(.primary)
+        VStack(spacing: 16) {
+            // 主要时钟显示
+            HStack(spacing: 4) {
+                // 时
+                Text(hourString)
+                    .font(.system(size: 72, weight: .light, design: .monospaced))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [.blue, .purple]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // 冒号（带闪烁动画）
+                Text(":")
+                    .font(.system(size: 50, weight: .light, design: .monospaced))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [.blue.opacity(0.8), .purple.opacity(0.8)]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .opacity(shouldShowColon ? 1.0 : 0.3)
+                    .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: currentTime)
+                
+                // 分
+                Text(minuteString)
+                    .font(.system(size: 72, weight: .light, design: .monospaced))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [.blue, .purple]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // 冒号（带闪烁动画）
+                Text(":")
+                    .font(.system(size: 50, weight: .light, design: .monospaced))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [.blue.opacity(0.8), .purple.opacity(0.8)]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .opacity(shouldShowColon ? 1.0 : 0.3)
+                    .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: currentTime)
+                
+                // 秒
+                Text(secondString)
+                    .font(.system(size: 72, weight: .light, design: .monospaced))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [.blue, .purple]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+            .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
             
-            // 冒号
-            Text(":")
-                .font(.system(size: 40, weight: .medium, design: .monospaced))
-                .foregroundColor(.primary)
-            
-            // 分
-            Text(minuteString)
-                .font(.system(size: 60, weight: .medium, design: .monospaced))
-                .foregroundColor(.primary)
-            
-            // 冒号
-            Text(":")
-                .font(.system(size: 40, weight: .medium, design: .monospaced))
-                .foregroundColor(.primary)
-            
-            // 秒
-            Text(secondString)
-                .font(.system(size: 60, weight: .medium, design: .monospaced))
-                .foregroundColor(.primary)
+            // 状态指示器
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(isInTimerMode ? Color.orange : Color.green)
+                    .frame(width: 8, height: 8)
+                    .scaleEffect(isInTimerMode ? 1.2 : 1.0)
+                    .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isInTimerMode)
+                
+                Text(isInTimerMode ? "计时模式" : "时钟模式")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fontWeight(.medium)
+            }
         }
+        .padding(.vertical, 24)
+        .padding(.horizontal, 20)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color(.systemBackground),
+                            Color(.systemBackground).opacity(0.95)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .shadow(color: .black.opacity(0.1), radius: 12, x: 0, y: 6)
+        )
         .onReceive(timer) { input in
             currentTime = input
         }
@@ -81,8 +148,17 @@ struct DigitalClockView: View {
     }
     
     private var shouldShowColon: Bool {
-        // 冒号不闪烁，始终显示
-        return true
+        // 冒号闪烁效果
+        let second = Calendar.current.component(.second, from: currentTime)
+        return second % 2 == 0
+    }
+    
+    /// 判断是否处于计时模式
+    private var isInTimerMode: Bool {
+        if let viewModel = timerViewModel {
+            return viewModel.isRunning || viewModel.remainingSeconds > 0
+        }
+        return false
     }
     
     private var accessibilityTimeString: String {

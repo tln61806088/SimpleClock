@@ -15,11 +15,28 @@ struct HomeView: View {
             GeometryReader { geometry in
                 VStack(spacing: 0) {
                     // 上方固定内容区域 - 不滚动
-                    VStack(spacing: 24) {
+                    VStack(spacing: 32) {
                         // 时钟显示区域
                         clockDisplayArea
+                            .padding(.top, 8)
                     
-                        Divider()
+                        // 优雅的分割线
+                        HStack {
+                            Rectangle()
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            .clear,
+                                            .gray.opacity(0.3),
+                                            .clear
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(height: 1)
+                        }
+                        .padding(.horizontal, 40)
                     
                         // 计时设置区域
                         TimerPickerView(settings: $timerSettings, isEnabled: !timerViewModel.isRunning)
@@ -27,28 +44,43 @@ struct HomeView: View {
                                 timerViewModel.updateSettings(newSettings)
                             }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 20)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 24)
                     
-                    // 中间空白区域
-                    Spacer()
+                    // 中间弹性空白区域
+                    Spacer(minLength: 20)
                     
                     // 底部按钮区 - 固定在底部，响应式高度
                     VStack(spacing: 0) {
                         MainControlButtonsView(viewModel: timerViewModel)
                             .frame(height: calculateButtonAreaHeight(for: geometry), alignment: .top)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, geometry.safeAreaInsets.bottom + 16)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
                 }
                 .navigationTitle("极简语音计时")
                 .navigationBarTitleDisplayMode(.inline)
-                .background(Color(.systemGroupedBackground))
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color(.systemBackground),
+                            Color(.systemGray6).opacity(0.3),
+                            Color(.systemBackground)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
+                )
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .onAppear {
             timerViewModel.updateSettings(timerSettings)
+            // 添加进入动画
+            withAnimation(.easeInOut(duration: 0.8)) {
+                // 可以在这里添加状态变化来驱动动画
+            }
         }
     }
     

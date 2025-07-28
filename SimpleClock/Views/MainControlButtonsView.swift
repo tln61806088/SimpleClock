@@ -127,6 +127,8 @@ struct ControlButton: View {
     let isMainButton: Bool
     let action: () -> Void
     
+    @State private var isPressed = false
+    
     init(title: String, systemImage: String, backgroundColor: Color, action: @escaping () -> Void) {
         // 向后兼容的初始化器（用于语音识别按钮等）
         self.title = title
@@ -149,24 +151,85 @@ struct ControlButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 Image(systemName: systemImage)
-                    .font(.system(size: isMainButton ? 24 : 24, weight: .medium))
-                    .foregroundColor(.white)
+                    .font(.system(size: isMainButton ? 24 : 24, weight: .semibold))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [.white, .white.opacity(0.9)]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                 
                 Text(title)
-                    .font(.system(size: isMainButton ? 16 : 14, weight: .medium))
-                    .foregroundColor(.white)
+                    .font(.system(size: isMainButton ? 16 : 14, weight: .semibold))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [.white, .white.opacity(0.9)]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
+                    .shadow(color: .black.opacity(0.2), radius: 1, x: 0, y: 1)
             }
             .frame(maxWidth: .infinity, minHeight: buttonHeight, maxHeight: buttonHeight)
-            .background(backgroundColor)
-            .cornerRadius(12)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                getGradientColors().0,
+                                getGradientColors().1
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white.opacity(0.3),
+                                        .clear
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+            )
+            .scaleEffect(isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: isPressed)
         }
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            isPressed = pressing
+        }, perform: {})
         .accessibilityLabel(title)
         .accessibilityHint("双击执行\(title)操作")
         .accessibilityAddTraits(.isButton)
+    }
+    
+    /// 根据按钮类型获取渐变色
+    private func getGradientColors() -> (Color, Color) {
+        switch title {
+        case "时间播报":
+            return (Color.blue, Color.blue.opacity(0.8))
+        case "开始计时", "暂停计时":
+            return (Color.green, Color.green.opacity(0.8))
+        case "剩余时间":
+            return (Color.orange, Color.orange.opacity(0.8))
+        case "结束计时":
+            return (Color.red, Color.red.opacity(0.8))
+        default:
+            return (Color.gray, Color.gray.opacity(0.8))
+        }
     }
 }
 

@@ -22,60 +22,134 @@ struct TimerPickerView: View {
     }
     
     var body: some View {
-        HStack(spacing: 40) {
-            // 左侧：计时时长选择器
-            VStack(alignment: .center, spacing: 8) {
-                Text("计时时长")
-                    .font(.headline)
+        VStack(spacing: 20) {
+            // 标题区域
+            HStack {
+                Image(systemName: "timer")
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [.blue, .cyan]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .font(.title2)
+                
+                Text("计时设置")
+                    .font(.title2)
+                    .fontWeight(.semibold)
                     .foregroundColor(.primary)
                 
-                Picker("计时时长", selection: $selectedDuration) {
-                    ForEach(Array(TimerSettings.durationRange), id: \.self) { duration in
-                        Text("\(duration)分钟")
-                            .tag(duration)
-                            .foregroundColor(isEnabled ? .primary : .secondary)
+                Spacer()
+                
+                // 状态指示器
+                if !isEnabled {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color.orange)
+                            .frame(width: 6, height: 6)
+                        Text("运行中")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                            .fontWeight(.medium)
                     }
                 }
-                .pickerStyle(.wheel)
-                .frame(height: 120)
-                .disabled(!isEnabled)
-                .opacity(isEnabled ? 1.0 : 0.6)
-                .onChange(of: selectedDuration) { newValue in
-                    if isEnabled {
-                        handleDurationChange(newValue)
-                    }
-                }
-                .accessibilityLabel("计时时长选择器")
-                .accessibilityHint("滑动选择计时时长，范围1到720分钟")
             }
             
-            // 右侧：提醒间隔选择器
-            VStack(alignment: .center, spacing: 8) {
-                Text("提醒间隔")
-                    .font(.headline)
-                    .foregroundColor(.primary)
+            // 选择器区域
+            HStack(spacing: 32) {
+                // 左侧：计时时长选择器
+                VStack(alignment: .center, spacing: 12) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock.fill")
+                            .foregroundColor(.blue)
+                            .font(.caption)
+                        
+                        Text("计时时长")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                    }
+                    
+                    Picker("计时时长", selection: $selectedDuration) {
+                        ForEach(Array(TimerSettings.durationRange), id: \.self) { duration in
+                            Text("\(duration)分钟")
+                                .tag(duration)
+                                .foregroundColor(isEnabled ? .primary : .secondary)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(height: 100)
+                    .disabled(!isEnabled)
+                    .opacity(isEnabled ? 1.0 : 0.6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.systemBackground))
+                            .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+                    )
+                    .onChange(of: selectedDuration) { newValue in
+                        if isEnabled {
+                            handleDurationChange(newValue)
+                        }
+                    }
+                    .accessibilityLabel("计时时长选择器")
+                    .accessibilityHint("滑动选择计时时长，范围1到720分钟")
+                }
                 
-                Picker("提醒间隔", selection: $selectedInterval) {
-                    ForEach(TimerSettings.intervalOptions, id: \.self) { interval in
-                        Text(interval == 0 ? "不提醒" : "\(interval)分钟")
-                            .tag(interval)
-                            .foregroundColor(isEnabled ? .primary : .secondary)
+                // 右侧：提醒间隔选择器
+                VStack(alignment: .center, spacing: 12) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bell.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                        
+                        Text("提醒间隔")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
                     }
-                }
-                .pickerStyle(.wheel)
-                .frame(height: 120)
-                .disabled(!isEnabled)
-                .opacity(isEnabled ? 1.0 : 0.6)
-                .onChange(of: selectedInterval) { newValue in
-                    if isEnabled {
-                        handleIntervalChange(newValue)
+                    
+                    Picker("提醒间隔", selection: $selectedInterval) {
+                        ForEach(TimerSettings.intervalOptions, id: \.self) { interval in
+                            Text(interval == 0 ? "不提醒" : "\(interval)分钟")
+                                .tag(interval)
+                                .foregroundColor(isEnabled ? .primary : .secondary)
+                        }
                     }
+                    .pickerStyle(.wheel)
+                    .frame(height: 100)
+                    .disabled(!isEnabled)
+                    .opacity(isEnabled ? 1.0 : 0.6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.systemBackground))
+                            .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+                    )
+                    .onChange(of: selectedInterval) { newValue in
+                        if isEnabled {
+                            handleIntervalChange(newValue)
+                        }
+                    }
+                    .accessibilityLabel("提醒间隔选择器")
+                    .accessibilityHint("滑动选择提醒间隔")
                 }
-                .accessibilityLabel("提醒间隔选择器")
-                .accessibilityHint("滑动选择提醒间隔")
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.all, 20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color(.systemGray6),
+                            Color(.systemGray6).opacity(0.8)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
+        )
         .onAppear {
             // 初始化时播报当前设置
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
