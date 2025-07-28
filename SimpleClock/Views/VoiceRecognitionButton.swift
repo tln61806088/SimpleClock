@@ -271,10 +271,11 @@ struct VoiceRecognitionButton: View {
     
     /// 检查文本是否包含间隔关键词
     private func hasIntervalKeyword(in text: String) -> Bool {
-        // 更精确的间隔关键词匹配，避免误判
+        // 检测各种间隔关键词
         return text.contains("间隔") ||
                text.contains("每隔") ||
-               (text.contains("每") && !text.hasPrefix("计时") && (text.contains("分钟") || text.contains("小时")))
+               // 修复：移除对"计时"开头的限制，因为"计时x小时，间隔x分钟"也应该被识别
+               (text.contains("每") && (text.contains("分钟") || text.contains("小时")))
     }
     
     /// 从文本中提取计时时长
@@ -513,7 +514,7 @@ struct VoiceRecognitionButton: View {
     /// 从文本中提取间隔时间
     private func extractIntervalFromText(_ text: String) -> Int? {
         // 检查是否包含任何间隔关键词
-        let intervalKeywords = ["间隔", "每隔"]  // 只匹配明确的间隔关键词
+        let intervalKeywords = ["间隔", "每隔", "每"]  // 扩展间隔关键词，包括"每"
         let hasIntervalKeyword = intervalKeywords.contains { text.contains($0) }
         
         if hasIntervalKeyword {

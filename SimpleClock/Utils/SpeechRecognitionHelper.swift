@@ -255,12 +255,14 @@ class SpeechRecognitionHelper: NSObject {
         
         // 计时设置指令 - 优先检查复合指令
         if let duration = extractDuration(from: text), let interval = extractInterval(from: text) {
-            return "计时\(duration)分钟间隔\(interval)分钟"
+            let durationText = formatDuration(duration)
+            return "计时\(durationText)间隔\(interval)分钟"
         }
         
         // 单独的计时设置指令
         if let duration = extractDuration(from: text) {
-            return "计时\(duration)分钟"
+            let durationText = formatDuration(duration)
+            return "计时\(durationText)"
         }
         
         // 单独的间隔设置指令
@@ -274,17 +276,28 @@ class SpeechRecognitionHelper: NSObject {
     
     /// 从文本中提取计时时长
     private func extractDuration(from text: String) -> Int? {
-        // 匹配"计时xx分钟"或"xx分钟计时"等模式
+        // 匹配"计时xx小时"、"计时xx分钟"或"xx分钟计时"等模式
         let patterns = [
+            // 小时模式，转换为分钟
+            "计时(\\d+)小时",
+            "计时([一二三四五六七八九十百]+)小时",
+            "(\\d+)小时计时",
+            "([一二三四五六七八九十百]+)小时计时",
+            // 分钟模式
             "计时(\\d+)分钟",
             "计时([一二三四五六七八九十百]+)分钟",
             "(\\d+)分钟计时",
             "([一二三四五六七八九十百]+)分钟计时"
         ]
         
-        for pattern in patterns {
+        for (index, pattern) in patterns.enumerated() {
             if let match = extractNumber(from: text, pattern: pattern) {
-                return match
+                // 前4个是小时模式，需要转换为分钟
+                if index < 4 {
+                    return match * 60
+                } else {
+                    return match
+                }
             }
         }
         
@@ -293,12 +306,14 @@ class SpeechRecognitionHelper: NSObject {
     
     /// 从文本中提取间隔时间
     private func extractInterval(from text: String) -> Int? {
-        // 匹配"间隔xx分钟"等模式
+        // 匹配"间隔xx分钟"、"每xx分钟"、"每隔xx分钟"等模式
         let patterns = [
             "间隔(\\d+)分钟",
             "间隔([一二三四五六七八九十百]+)分钟",
             "每隔(\\d+)分钟",
-            "每隔([一二三四五六七八九十百]+)分钟"
+            "每隔([一二三四五六七八九十百]+)分钟",
+            "每(\\d+)分钟",
+            "每([一二三四五六七八九十百]+)分钟"
         ]
         
         for pattern in patterns {
@@ -325,6 +340,23 @@ class SpeechRecognitionHelper: NSObject {
         }
         
         return nil
+    }
+    
+    /// 格式化时长显示（分钟或小时分钟）
+    private func formatDuration(_ minutes: Int) -> String {
+        if minutes >= 60 && minutes % 60 == 0 {
+            // 整小时
+            let hours = minutes / 60
+            return "\(hours)小时"
+        } else if minutes >= 60 {
+            // 小时加分钟
+            let hours = minutes / 60
+            let remainingMinutes = minutes % 60
+            return "\(hours)小时\(remainingMinutes)分钟"
+        } else {
+            // 纯分钟
+            return "\(minutes)分钟"
+        }
     }
     
     /// 转换中文数字为阿拉伯数字
