@@ -14,23 +14,19 @@ struct HomeView: View {
         GeometryReader { geometry in
                 VStack(spacing: 0) {
                     // 上方固定内容区域 - 不滚动
-                    VStack(spacing: 32) {
+                    VStack(spacing: DesignSystem.Spacing.large) {
                         // 自定义标题
                         Text("极简语音计时")
-                            .font(.system(size: 20, weight: .ultraLight, design: .monospaced))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 0.1, green: 0.2, blue: 0.5),
-                                        Color.purple,
-                                        Color(red: 0.1, green: 0.2, blue: 0.5)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
-                            .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
+                            .font(DesignSystem.Fonts.title(size: DesignSystem.Sizes.titleText))
+                            .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                            .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                                   radius: DesignSystem.Shadows.primaryShadow.radius,
+                                   x: DesignSystem.Shadows.primaryShadow.x,
+                                   y: DesignSystem.Shadows.primaryShadow.y)
+                            .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                                   radius: DesignSystem.Shadows.secondaryShadow.radius,
+                                   x: DesignSystem.Shadows.secondaryShadow.x,
+                                   y: DesignSystem.Shadows.secondaryShadow.y)
                         
                         // 时钟显示区域
                         clockDisplayArea
@@ -38,17 +34,7 @@ struct HomeView: View {
                         // 优雅的分割线
                         HStack {
                             Rectangle()
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            .clear,
-                                            .gray.opacity(0.3),
-                                            .clear
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                                .fill(DesignSystem.Colors.dividerGradient)
                                 .frame(height: 1)
                         }
                         .padding(.horizontal, 40)
@@ -59,32 +45,21 @@ struct HomeView: View {
                                 timerViewModel.updateSettings(newSettings)
                             }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
+                    .padding(.horizontal, DesignSystem.Spacing.medium + 4)
+                    .padding(.top, DesignSystem.Spacing.small + 4)
                     
                     // 中间弹性空白区域
-                    Spacer(minLength: 20)
+                    Spacer(minLength: DesignSystem.Spacing.medium + 4)
                     
                     // 底部按钮区 - 固定在底部，响应式高度
                     VStack(spacing: 0) {
                         MainControlButtonsView(viewModel: timerViewModel)
                             .frame(height: calculateButtonAreaHeight(for: geometry), alignment: .top)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
+                    .padding(.horizontal, DesignSystem.Spacing.medium + 4)
+                    .padding(.bottom, geometry.safeAreaInsets.bottom + DesignSystem.Spacing.medium + 4)
             }
-            .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(.systemBackground),
-                            Color(.systemGray6).opacity(0.3),
-                            Color(.systemBackground)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .ignoresSafeArea()
-                )
+            .background(DesignSystem.Colors.backgroundGradient.ignoresSafeArea())
         }
         .onAppear {
             timerViewModel.updateSettings(timerSettings)
@@ -99,12 +74,11 @@ struct HomeView: View {
     private func calculateButtonAreaHeight(for geometry: GeometryProxy) -> CGFloat {
         let _ = geometry.size.height
         
-        // 语音识别按钮高度固定为180
-        let voiceButtonHeight: CGFloat = 180
-        // 主控制按钮高度为语音识别按钮的1/2
-        let mainButtonHeight = voiceButtonHeight / 2
+        // 使用DesignSystem中定义的高度
+        let voiceButtonHeight = DesignSystem.Sizes.voiceButtonHeight
+        let mainButtonHeight = DesignSystem.Sizes.mainButtonHeight
         // 两行主控制按钮 + 一行语音识别按钮 + 间距
-        let totalHeight = (mainButtonHeight * 2) + voiceButtonHeight + (16 * 2) // 两个16px间距
+        let totalHeight = (mainButtonHeight * 2) + voiceButtonHeight + (DesignSystem.Spacing.buttonSpacing * 2)
         
         // 精确计算，不设置最小高度强制要求
         return totalHeight

@@ -13,28 +13,34 @@ struct DigitalClockView: View {
             // 主要时钟显示
             HStack(spacing: 0) {
                 // 时
-                TimeDigitView(text: hourString, size: 72)
+                TimeDigitView(text: hourString, size: DesignSystem.Sizes.clockDigit)
                 
                 // 冒号（带闪烁动画）
-                TimeDigitView(text: ":", size: 50)
+                TimeDigitView(text: ":", size: DesignSystem.Sizes.colon)
                     .opacity(shouldShowColon ? 1.0 : 0.3)
                     .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: currentTime)
-                    .padding(.horizontal, 2)
+                    .padding(.horizontal, DesignSystem.Spacing.clockDigitSpacing)
                 
                 // 分
-                TimeDigitView(text: minuteString, size: 72)
+                TimeDigitView(text: minuteString, size: DesignSystem.Sizes.clockDigit)
                 
                 // 冒号（带闪烁动画）
-                TimeDigitView(text: ":", size: 50)
+                TimeDigitView(text: ":", size: DesignSystem.Sizes.colon)
                     .opacity(shouldShowColon ? 1.0 : 0.3)
                     .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: currentTime)
-                    .padding(.horizontal, 2)
+                    .padding(.horizontal, DesignSystem.Spacing.clockDigitSpacing)
                 
                 // 秒
-                TimeDigitView(text: secondString, size: 72)
+                TimeDigitView(text: secondString, size: DesignSystem.Sizes.clockDigit)
             }
-            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.4), radius: 12, x: 0, y: 6)
-            .shadow(color: Color.purple.opacity(0.3), radius: 6, x: 0, y: 3)
+            .shadow(color: DesignSystem.Shadows.largePrimaryShadow.color, 
+                   radius: DesignSystem.Shadows.largePrimaryShadow.radius,
+                   x: DesignSystem.Shadows.largePrimaryShadow.x,
+                   y: DesignSystem.Shadows.largePrimaryShadow.y)
+            .shadow(color: DesignSystem.Shadows.largeSecondaryShadow.color,
+                   radius: DesignSystem.Shadows.largeSecondaryShadow.radius,
+                   x: DesignSystem.Shadows.largeSecondaryShadow.x,
+                   y: DesignSystem.Shadows.largeSecondaryShadow.y)
         }
         .onReceive(timer) { input in
             currentTime = input
@@ -118,25 +124,21 @@ struct TimeDigitView: View {
     
     var body: some View {
         Text(text)
-            .font(.system(size: size, weight: .ultraLight, design: .monospaced))
+            .font(DesignSystem.Fonts.clockDigit(size: size))
             .foregroundColor(.clear)
             .overlay(
                 Text(text)
-                    .font(.system(size: size, weight: .ultraLight, design: .monospaced))
-                    .foregroundStyle(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color(red: 0.1, green: 0.2, blue: 0.5),
-                                Color.purple,
-                                Color(red: 0.1, green: 0.2, blue: 0.5)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .font(DesignSystem.Fonts.clockDigit(size: size))
+                    .foregroundStyle(DesignSystem.Colors.primaryGradient)
             )
-            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 8, x: 0, y: 4)
-            .shadow(color: Color.purple.opacity(0.2), radius: 4, x: 0, y: 2)
+            .shadow(color: DesignSystem.Shadows.clockDigitShadow.color,
+                   radius: DesignSystem.Shadows.clockDigitShadow.radius,
+                   x: DesignSystem.Shadows.clockDigitShadow.x,
+                   y: DesignSystem.Shadows.clockDigitShadow.y)
+            .shadow(color: DesignSystem.Shadows.clockDigitSecondaryShadow.color,
+                   radius: DesignSystem.Shadows.clockDigitSecondaryShadow.radius,
+                   x: DesignSystem.Shadows.clockDigitSecondaryShadow.x,
+                   y: DesignSystem.Shadows.clockDigitSecondaryShadow.y)
             .fixedSize()
     }
 }

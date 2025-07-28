@@ -22,61 +22,43 @@ struct TimerPickerView: View {
     }
     
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: DesignSystem.Spacing.medium + 4) {
             // 选择器区域
-            HStack(spacing: 32) {
+            HStack(spacing: DesignSystem.Spacing.pickerSpacing) {
                 // 左侧：计时时长选择器
-                VStack(alignment: .center, spacing: 12) {
-                    HStack(spacing: 6) {
+                VStack(alignment: .center, spacing: DesignSystem.Spacing.small + 4) {
+                    HStack(spacing: DesignSystem.Spacing.labelSpacing) {
                         Image(systemName: "clock.fill")
-                            .font(.system(size: 14, weight: .ultraLight, design: .monospaced))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 0.1, green: 0.2, blue: 0.5),
-                                        Color.purple,
-                                        Color(red: 0.1, green: 0.2, blue: 0.5)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
-                            .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
+                            .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelIcon))
+                            .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                            .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                                   radius: DesignSystem.Shadows.primaryShadow.radius,
+                                   x: DesignSystem.Shadows.primaryShadow.x,
+                                   y: DesignSystem.Shadows.primaryShadow.y)
+                            .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                                   radius: DesignSystem.Shadows.secondaryShadow.radius,
+                                   x: DesignSystem.Shadows.secondaryShadow.x,
+                                   y: DesignSystem.Shadows.secondaryShadow.y)
                         
                         Text("计时时长")
-                            .font(.system(size: 16, weight: .ultraLight, design: .monospaced))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 0.1, green: 0.2, blue: 0.5),
-                                        Color.purple,
-                                        Color(red: 0.1, green: 0.2, blue: 0.5)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
-                            .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
+                            .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelText))
+                            .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                            .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                                   radius: DesignSystem.Shadows.primaryShadow.radius,
+                                   x: DesignSystem.Shadows.primaryShadow.x,
+                                   y: DesignSystem.Shadows.primaryShadow.y)
+                            .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                                   radius: DesignSystem.Shadows.secondaryShadow.radius,
+                                   x: DesignSystem.Shadows.secondaryShadow.x,
+                                   y: DesignSystem.Shadows.secondaryShadow.y)
                     }
                     
                     Picker("计时时长", selection: $selectedDuration) {
                         ForEach(Array(TimerSettings.durationRange), id: \.self) { duration in
                             Text("\(duration)分钟")
                                 .tag(duration)
-                                .font(.system(size: 18, weight: .bold, design: .monospaced))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.1, green: 0.2, blue: 0.5),
-                                            Color.purple,
-                                            Color(red: 0.1, green: 0.2, blue: 0.5)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
+                                .font(DesignSystem.Fonts.pickerText(size: DesignSystem.Sizes.pickerText))
+                                .foregroundStyle(DesignSystem.Colors.primaryGradient)
                         }
                     }
                     .pickerStyle(.wheel)
@@ -84,7 +66,7 @@ struct TimerPickerView: View {
                     .disabled(!isEnabled)
                     .opacity(isEnabled ? 1.0 : 0.6)
                     .background(
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.pickerBackground)
                             .fill(Color(.systemBackground))
                             .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
                     )
@@ -98,57 +80,39 @@ struct TimerPickerView: View {
                 }
                 
                 // 右侧：提醒间隔选择器
-                VStack(alignment: .center, spacing: 12) {
-                    HStack(spacing: 6) {
+                VStack(alignment: .center, spacing: DesignSystem.Spacing.small + 4) {
+                    HStack(spacing: DesignSystem.Spacing.labelSpacing) {
                         Image(systemName: "bell.fill")
-                            .font(.system(size: 14, weight: .ultraLight, design: .monospaced))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 0.1, green: 0.2, blue: 0.5),
-                                        Color.purple,
-                                        Color(red: 0.1, green: 0.2, blue: 0.5)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
-                            .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
+                            .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelIcon))
+                            .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                            .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                                   radius: DesignSystem.Shadows.primaryShadow.radius,
+                                   x: DesignSystem.Shadows.primaryShadow.x,
+                                   y: DesignSystem.Shadows.primaryShadow.y)
+                            .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                                   radius: DesignSystem.Shadows.secondaryShadow.radius,
+                                   x: DesignSystem.Shadows.secondaryShadow.x,
+                                   y: DesignSystem.Shadows.secondaryShadow.y)
                         
                         Text("提醒间隔")
-                            .font(.system(size: 16, weight: .ultraLight, design: .monospaced))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 0.1, green: 0.2, blue: 0.5),
-                                        Color.purple,
-                                        Color(red: 0.1, green: 0.2, blue: 0.5)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
-                            .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
+                            .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelText))
+                            .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                            .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                                   radius: DesignSystem.Shadows.primaryShadow.radius,
+                                   x: DesignSystem.Shadows.primaryShadow.x,
+                                   y: DesignSystem.Shadows.primaryShadow.y)
+                            .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                                   radius: DesignSystem.Shadows.secondaryShadow.radius,
+                                   x: DesignSystem.Shadows.secondaryShadow.x,
+                                   y: DesignSystem.Shadows.secondaryShadow.y)
                     }
                     
                     Picker("提醒间隔", selection: $selectedInterval) {
                         ForEach(TimerSettings.intervalOptions, id: \.self) { interval in
                             Text(interval == 0 ? "不提醒" : "\(interval)分钟")
                                 .tag(interval)
-                                .font(.system(size: 18, weight: .bold, design: .monospaced))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.1, green: 0.2, blue: 0.5),
-                                            Color.purple,
-                                            Color(red: 0.1, green: 0.2, blue: 0.5)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
+                                .font(DesignSystem.Fonts.pickerText(size: DesignSystem.Sizes.pickerText))
+                                .foregroundStyle(DesignSystem.Colors.primaryGradient)
                         }
                     }
                     .pickerStyle(.wheel)
@@ -156,7 +120,7 @@ struct TimerPickerView: View {
                     .disabled(!isEnabled)
                     .opacity(isEnabled ? 1.0 : 0.6)
                     .background(
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.pickerBackground)
                             .fill(Color(.systemBackground))
                             .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
                     )

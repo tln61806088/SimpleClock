@@ -26,42 +26,20 @@ struct VoiceRecognitionButton: View {
     @State private var recordingTimer: Timer?
     
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: DesignSystem.Spacing.voiceButtonInternalSpacing) {
             // 主按钮 - 简洁边框设计
             ZStack {
                 // 边框
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color(red: 0.1, green: 0.2, blue: 0.5),
-                                Color.purple,
-                                Color(red: 0.1, green: 0.2, blue: 0.5)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 2
-                    )
-                    .frame(maxWidth: .infinity, minHeight: 157.5, maxHeight: 157.5)
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.voiceButton)
+                    .stroke(DesignSystem.Colors.primaryGradient, lineWidth: DesignSystem.Borders.primaryBorder.lineWidth)
+                    .frame(maxWidth: .infinity, minHeight: DesignSystem.Sizes.voiceButtonHeight, maxHeight: DesignSystem.Sizes.voiceButtonHeight)
                 
                 // 录音动画波纹 - 蓝青渐变效果
                 if isRecording {
                     ForEach(0..<4, id: \.self) { index in
-                        RoundedRectangle(cornerRadius: 24)
-                            .stroke(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.8),
-                                        Color.purple.opacity(0.6),
-                                        Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.4)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 3
-                            )
-                            .frame(maxWidth: .infinity, minHeight: 157.5, maxHeight: 157.5)
+                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.voiceButton)
+                            .stroke(DesignSystem.Colors.primaryGradient.opacity(0.6), lineWidth: DesignSystem.Borders.animationBorder.lineWidth)
+                            .frame(maxWidth: .infinity, minHeight: DesignSystem.Sizes.voiceButtonHeight, maxHeight: DesignSystem.Sizes.voiceButtonHeight)
                             .scaleEffect(recordingAnimation ? 1.3 : 1.0)
                             .opacity(recordingAnimation ? 0.0 : 0.9)
                             .animation(
@@ -74,60 +52,41 @@ struct VoiceRecognitionButton: View {
                 }
                 
                 // 图标和文字
-                VStack(spacing: 12) {
+                VStack(spacing: DesignSystem.Spacing.voiceButtonInternalSpacing) {
                     // 语音图标
                     ZStack {
                         // 图标背景圆形边框
                         Circle()
-                            .stroke(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.4),
-                                        Color.purple.opacity(0.3),
-                                        Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.2)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                            .frame(width: 60, height: 60)
+                            .stroke(DesignSystem.Colors.primaryGradient.opacity(0.3), lineWidth: DesignSystem.Borders.thinBorder.lineWidth)
+                            .frame(width: DesignSystem.Sizes.voiceIconBackground, height: DesignSystem.Sizes.voiceIconBackground)
                         
                         Image(systemName: currentIcon)
-                            .font(.system(size: 28, weight: .ultraLight, design: .monospaced))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 0.1, green: 0.2, blue: 0.5),
-                                        Color.purple,
-                                        Color(red: 0.1, green: 0.2, blue: 0.5)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
-                            .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
+                            .font(DesignSystem.Fonts.buttonIcon(size: DesignSystem.Sizes.voiceIcon))
+                            .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                            .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                                   radius: DesignSystem.Shadows.primaryShadow.radius,
+                                   x: DesignSystem.Shadows.primaryShadow.x,
+                                   y: DesignSystem.Shadows.primaryShadow.y)
+                            .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                                   radius: DesignSystem.Shadows.secondaryShadow.radius,
+                                   x: DesignSystem.Shadows.secondaryShadow.x,
+                                   y: DesignSystem.Shadows.secondaryShadow.y)
                             .scaleEffect(isRecording ? 1.1 : 1.0)
                             .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isRecording)
                     }
                     
                     // 状态文字
                     Text(currentStateText)
-                        .font(.system(size: 18, weight: .ultraLight, design: .monospaced))
-                        .foregroundStyle(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color(red: 0.1, green: 0.2, blue: 0.5),
-                                    Color.purple,
-                                    Color(red: 0.1, green: 0.2, blue: 0.5)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
-                        .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
+                        .font(DesignSystem.Fonts.buttonText(size: DesignSystem.Sizes.voiceStateText))
+                        .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                        .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                               radius: DesignSystem.Shadows.primaryShadow.radius,
+                               x: DesignSystem.Shadows.primaryShadow.x,
+                               y: DesignSystem.Shadows.primaryShadow.y)
+                        .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                               radius: DesignSystem.Shadows.secondaryShadow.radius,
+                               x: DesignSystem.Shadows.secondaryShadow.x,
+                               y: DesignSystem.Shadows.secondaryShadow.y)
                         .multilineTextAlignment(.center)
                 }
             }
@@ -147,17 +106,6 @@ struct VoiceRecognitionButton: View {
     }
     
     @State private var isPressed = false
-    
-    /// 当前按钮渐变色
-    private var buttonGradientColors: [Color] {
-        if isRecording {
-            return [Color.red, Color.red.opacity(0.8), Color.orange]
-        } else if isPreparingToRecord {
-            return [Color.orange, Color.orange.opacity(0.8), Color.yellow]
-        } else {
-            return [Color.purple, Color.purple.opacity(0.8), Color.blue]
-        }
-    }
     
     /// 当前图标
     private var currentIcon: String {

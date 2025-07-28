@@ -10,9 +10,9 @@ struct MainControlButtonsView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            VStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .center, spacing: DesignSystem.Spacing.buttonSpacing) {
                 // 第一行按钮
-                HStack(spacing: 16) {
+                HStack(spacing: DesignSystem.Spacing.buttonSpacing) {
                     // 时间播报按钮
                     ControlButton(
                         title: "时间播报",
@@ -37,7 +37,7 @@ struct MainControlButtonsView: View {
                 }
                 
                 // 第二行按钮
-                HStack(spacing: 16) {
+                HStack(spacing: DesignSystem.Spacing.buttonSpacing) {
                     // 剩余时间按钮
                     ControlButton(
                         title: "剩余时间",
@@ -64,15 +64,14 @@ struct MainControlButtonsView: View {
                 // 第三行：语音识别按钮
                 VoiceRecognitionButton(viewModel: viewModel)
             }
-            .padding(.top, 16)
+            .padding(.top, DesignSystem.Spacing.buttonSpacing)
         }
     }
     
     /// 根据设备尺寸计算按钮高度
     /// 主控制按钮高度 = 语音识别按钮高度的1/1.75
     private func calculateButtonHeight(for geometry: GeometryProxy) -> CGFloat {
-        let voiceButtonHeight: CGFloat = 157.5
-        return voiceButtonHeight / 1.75 // 90像素
+        return DesignSystem.Sizes.mainButtonHeight
     }
     
     // MARK: - 按钮操作处理
@@ -151,56 +150,38 @@ struct ControlButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 10) {
+            VStack(spacing: DesignSystem.Spacing.iconTextSpacing) {
                 Image(systemName: systemImage)
-                    .font(.system(size: isMainButton ? 24 : 24, weight: .ultraLight, design: .monospaced))
-                    .foregroundStyle(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color(red: 0.1, green: 0.2, blue: 0.5),
-                                Color.purple,
-                                Color(red: 0.1, green: 0.2, blue: 0.5)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
-                    .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
+                    .font(DesignSystem.Fonts.buttonIcon(size: DesignSystem.Sizes.buttonIcon))
+                    .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                    .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                           radius: DesignSystem.Shadows.primaryShadow.radius,
+                           x: DesignSystem.Shadows.primaryShadow.x,
+                           y: DesignSystem.Shadows.primaryShadow.y)
+                    .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                           radius: DesignSystem.Shadows.secondaryShadow.radius,
+                           x: DesignSystem.Shadows.secondaryShadow.x,
+                           y: DesignSystem.Shadows.secondaryShadow.y)
                 
                 Text(title)
-                    .font(.system(size: isMainButton ? 16 : 14, weight: .ultraLight, design: .monospaced))
-                    .foregroundStyle(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color(red: 0.1, green: 0.2, blue: 0.5),
-                                Color.purple,
-                                Color(red: 0.1, green: 0.2, blue: 0.5)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .font(DesignSystem.Fonts.buttonText(size: DesignSystem.Sizes.buttonText))
+                    .foregroundStyle(DesignSystem.Colors.primaryGradient)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
-                    .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
-                    .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
+                    .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                           radius: DesignSystem.Shadows.primaryShadow.radius,
+                           x: DesignSystem.Shadows.primaryShadow.x,
+                           y: DesignSystem.Shadows.primaryShadow.y)
+                    .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                           radius: DesignSystem.Shadows.secondaryShadow.radius,
+                           x: DesignSystem.Shadows.secondaryShadow.x,
+                           y: DesignSystem.Shadows.secondaryShadow.y)
             }
             .frame(maxWidth: .infinity, minHeight: buttonHeight, maxHeight: buttonHeight)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color(red: 0.1, green: 0.2, blue: 0.5),
-                                Color.purple,
-                                Color(red: 0.1, green: 0.2, blue: 0.5)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 2
-                    )
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.button)
+                    .stroke(DesignSystem.Colors.primaryGradient, 
+                           lineWidth: DesignSystem.Borders.primaryBorder.lineWidth)
             )
             .scaleEffect(isPressed ? 0.95 : 1.0)
             .animation(.easeInOut(duration: 0.1), value: isPressed)
@@ -211,22 +192,6 @@ struct ControlButton: View {
         .accessibilityLabel(title)
         .accessibilityHint("双击执行\(title)操作")
         .accessibilityAddTraits(.isButton)
-    }
-    
-    /// 根据按钮类型获取渐变色
-    private func getGradientColors() -> (Color, Color) {
-        switch title {
-        case "时间播报":
-            return (Color.blue, Color.blue.opacity(0.8))
-        case "开始计时", "暂停计时":
-            return (Color.green, Color.green.opacity(0.8))
-        case "剩余时间":
-            return (Color.orange, Color.orange.opacity(0.8))
-        case "结束计时":
-            return (Color.red, Color.red.opacity(0.8))
-        default:
-            return (Color.gray, Color.gray.opacity(0.8))
-        }
     }
 }
 
