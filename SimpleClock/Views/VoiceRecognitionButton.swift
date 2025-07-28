@@ -113,12 +113,12 @@ struct VoiceRecognitionButton: View {
         print("点击语音识别：立即震动和播报提示")
         HapticHelper.shared.voiceRecognitionStartImpact()
         
-        // 暂停后台音乐播放，避免干扰语音识别
-        print("暂停后台音乐，准备语音识别")
-        ContinuousAudioPlayer.shared.stopContinuousPlayback()
+        // 关键修复：不停止后台音乐，而是降低音量，保持音频会话活跃
+        print("降低后台音乐音量，准备语音识别")
+        ContinuousAudioPlayer.shared.setVolume(0.001)  // 几乎静音但保持播放
         
         // 立即播报提示
-        SpeechHelper.shared.speak("请说出您的指令")
+        SpeechHelper.shared.speak("请说出您的计时要求")
         
         // 等待提示播报完成后再开始录音（约1.5秒）
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
@@ -931,8 +931,13 @@ struct VoiceRecognitionButton: View {
     private func resumeBackgroundAudioIfNeeded() {
         // 只有在计时器运行时才恢复后台音乐
         if viewModel.isRunning {
-            print("恢复后台音乐")
-            ContinuousAudioPlayer.shared.startContinuousPlayback()
+            print("恢复后台音乐播放，保持静音音量")
+            // 关键修复：如果已在播放，保持静音音量；如果未播放，则启动播放
+            if ContinuousAudioPlayer.shared.isContinuouslyPlaying {
+                ContinuousAudioPlayer.shared.setVolume(0.005)  // 保持静音音量
+            } else {
+                ContinuousAudioPlayer.shared.startContinuousPlayback()
+            }
         } else {
             print("计时器未运行，不恢复后台音乐")
         }
