@@ -54,11 +54,11 @@ struct VoiceRecognitionButton: View {
                 // 图标和文字
                 HStack(spacing: 16) {
                     Image(systemName: isRecording ? "waveform" : (isPreparingToRecord ? "speaker.wave.2" : "mic.fill"))
-                        .font(.system(size: 32, weight: .medium))
+                        .font(.system(size: 24, weight: .medium))
                         .foregroundColor(.white)
                     
                     Text(isRecording ? "录音中" : (isPreparingToRecord ? "请说话" : "语音识别"))
-                        .font(.system(size: 18, weight: .medium))
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                 }

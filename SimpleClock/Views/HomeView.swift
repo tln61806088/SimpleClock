@@ -22,7 +22,7 @@ struct HomeView: View {
                             Divider()
                         
                             // 计时设置区域
-                            TimerPickerView(settings: $timerSettings)
+                            TimerPickerView(settings: $timerSettings, isEnabled: !timerViewModel.isRunning)
                                 .onChange(of: timerSettings) { newSettings in
                                     timerViewModel.updateSettings(newSettings)
                                 }
