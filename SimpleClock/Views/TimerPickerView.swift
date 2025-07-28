@@ -31,7 +31,7 @@ struct TimerPickerView: View {
                     HStack(spacing: DesignSystem.Spacing.labelSpacing) {
                         Image(systemName: "clock.fill")
                             .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelIcon))
-                            .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                            .foregroundStyle(themeManager.currentTheme.primaryGradient)
                             .shadow(color: DesignSystem.Shadows.primaryShadow.color,
                                    radius: DesignSystem.Shadows.primaryShadow.radius,
                                    x: DesignSystem.Shadows.primaryShadow.x,
@@ -43,7 +43,7 @@ struct TimerPickerView: View {
                         
                         Text("计时时长")
                             .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelText))
-                            .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                            .foregroundStyle(themeManager.currentTheme.primaryGradient)
                             .shadow(color: DesignSystem.Shadows.primaryShadow.color,
                                    radius: DesignSystem.Shadows.primaryShadow.radius,
                                    x: DesignSystem.Shadows.primaryShadow.x,
@@ -59,7 +59,7 @@ struct TimerPickerView: View {
                             Text("\(duration)分钟")
                                 .tag(duration)
                                 .font(DesignSystem.Fonts.pickerText(size: DesignSystem.Sizes.pickerText))
-                                .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                                .foregroundStyle(themeManager.currentTheme.primaryGradient)
                         }
                     }
                     .pickerStyle(.wheel)
@@ -85,7 +85,7 @@ struct TimerPickerView: View {
                     HStack(spacing: DesignSystem.Spacing.labelSpacing) {
                         Image(systemName: "bell.fill")
                             .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelIcon))
-                            .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                            .foregroundStyle(themeManager.currentTheme.primaryGradient)
                             .shadow(color: DesignSystem.Shadows.primaryShadow.color,
                                    radius: DesignSystem.Shadows.primaryShadow.radius,
                                    x: DesignSystem.Shadows.primaryShadow.x,
@@ -97,7 +97,7 @@ struct TimerPickerView: View {
                         
                         Text("提醒间隔")
                             .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelText))
-                            .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                            .foregroundStyle(themeManager.currentTheme.primaryGradient)
                             .shadow(color: DesignSystem.Shadows.primaryShadow.color,
                                    radius: DesignSystem.Shadows.primaryShadow.radius,
                                    x: DesignSystem.Shadows.primaryShadow.x,
@@ -113,7 +113,7 @@ struct TimerPickerView: View {
                             Text(interval == 0 ? "不提醒" : "\(interval)分钟")
                                 .tag(interval)
                                 .font(DesignSystem.Fonts.pickerText(size: DesignSystem.Sizes.pickerText))
-                                .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                                .foregroundStyle(themeManager.currentTheme.primaryGradient)
                         }
                     }
                     .pickerStyle(.wheel)

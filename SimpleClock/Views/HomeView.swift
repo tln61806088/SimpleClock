@@ -6,6 +6,7 @@ struct HomeView: View {
     
     @ObservedObject private var themeManager = ThemeManager.shared
     @StateObject private var timerViewModel = TimerViewModel()
+    @StateObject private var colorThemeState = ColorThemeState()
     @State private var timerSettings = TimerSettings.default
     
     let mainButtonHeight: CGFloat = 80
@@ -13,20 +14,23 @@ struct HomeView: View {
     
     var body: some View {
         GeometryReader { geometry in
+            ZStack {
+                // 主要内容
                 VStack(spacing: 0) {
                     // 上方固定内容区域 - 不滚动
                     VStack(spacing: DesignSystem.Spacing.large) {
                         // 自定义导航栏
                         HStack {
-                            // 左侧颜色选择器
-                            ColorThemePicker()
+                            // 左侧颜色选择器按钮（只显示按钮）
+                            ColorThemeToggleButton()
+                                .environmentObject(colorThemeState)
                             
                             Spacer()
                             
                             // 中央标题
                             Text("极简语音计时")
                                 .font(DesignSystem.Fonts.title(size: DesignSystem.Sizes.titleText))
-                                .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                                .foregroundStyle(themeManager.currentTheme.primaryGradient)
                                 .shadow(color: DesignSystem.Shadows.primaryShadow.color,
                                        radius: DesignSystem.Shadows.primaryShadow.radius,
                                        x: DesignSystem.Shadows.primaryShadow.x,
@@ -72,8 +76,13 @@ struct HomeView: View {
                     }
                     .padding(.horizontal, DesignSystem.Spacing.medium + 4)
                     .padding(.bottom, geometry.safeAreaInsets.bottom + DesignSystem.Spacing.medium + 4)
+                }
+                .background(DesignSystem.Colors.backgroundGradient.ignoresSafeArea())
+                
+                // 颜色选择面板覆盖层
+                ColorThemeOverlay()
+                    .environmentObject(colorThemeState)
             }
-            .background(DesignSystem.Colors.backgroundGradient.ignoresSafeArea())
         }
         .onAppear {
             timerViewModel.updateSettings(timerSettings)

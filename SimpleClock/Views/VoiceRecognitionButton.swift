@@ -30,7 +30,7 @@ struct VoiceRecognitionButton: View {
             ZStack {
                 // 边框
                 RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.voiceButton)
-                    .stroke(DesignSystem.Colors.primaryGradient, lineWidth: DesignSystem.Borders.primaryBorder.lineWidth)
+                    .stroke(themeManager.currentTheme.primaryGradient, lineWidth: DesignSystem.Borders.primaryBorder.lineWidth)
                     .frame(maxWidth: .infinity, minHeight: DesignSystem.Sizes.voiceButtonHeight, maxHeight: DesignSystem.Sizes.voiceButtonHeight)
                 
                 // 图标和文字
@@ -39,12 +39,12 @@ struct VoiceRecognitionButton: View {
                     ZStack {
                         // 图标背景圆形边框
                         Circle()
-                            .stroke(DesignSystem.Colors.primaryGradient.opacity(0.3), lineWidth: DesignSystem.Borders.thinBorder.lineWidth)
+                            .stroke(themeManager.currentTheme.primaryGradient.opacity(0.3), lineWidth: DesignSystem.Borders.thinBorder.lineWidth)
                             .frame(width: DesignSystem.Sizes.voiceIconBackground, height: DesignSystem.Sizes.voiceIconBackground)
                         
                         Image(systemName: "mic.circle.fill")
                             .font(DesignSystem.Fonts.buttonIcon(size: DesignSystem.Sizes.voiceIcon))
-                            .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                            .foregroundStyle(themeManager.currentTheme.primaryGradient)
                             .shadow(color: DesignSystem.Shadows.primaryShadow.color,
                                    radius: DesignSystem.Shadows.primaryShadow.radius,
                                    x: DesignSystem.Shadows.primaryShadow.x,
@@ -60,7 +60,7 @@ struct VoiceRecognitionButton: View {
                     // 状态文字 - 固定为"语音识别"
                     Text("语音识别")
                         .font(DesignSystem.Fonts.buttonText(size: DesignSystem.Sizes.voiceStateText))
-                        .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                        .foregroundStyle(themeManager.currentTheme.primaryGradient)
                         .shadow(color: DesignSystem.Shadows.primaryShadow.color,
                                radius: DesignSystem.Shadows.primaryShadow.radius,
                                x: DesignSystem.Shadows.primaryShadow.x,

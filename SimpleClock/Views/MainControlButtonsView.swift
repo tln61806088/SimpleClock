@@ -120,6 +120,7 @@ struct MainControlButtonsView: View {
 
 /// 统一的控制按钮样式
 struct ControlButton: View {
+    @ObservedObject private var themeManager = ThemeManager.shared
     let title: String
     let systemImage: String
     let backgroundColor: Color
@@ -154,7 +155,7 @@ struct ControlButton: View {
             VStack(spacing: DesignSystem.Spacing.iconTextSpacing) {
                 Image(systemName: systemImage)
                     .font(DesignSystem.Fonts.buttonIcon(size: DesignSystem.Sizes.buttonIcon))
-                    .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                    .foregroundStyle(themeManager.currentTheme.primaryGradient)
                     .shadow(color: DesignSystem.Shadows.primaryShadow.color,
                            radius: DesignSystem.Shadows.primaryShadow.radius,
                            x: DesignSystem.Shadows.primaryShadow.x,
@@ -166,7 +167,7 @@ struct ControlButton: View {
                 
                 Text(title)
                     .font(DesignSystem.Fonts.buttonText(size: DesignSystem.Sizes.buttonText))
-                    .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                    .foregroundStyle(themeManager.currentTheme.primaryGradient)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .shadow(color: DesignSystem.Shadows.primaryShadow.color,
@@ -181,7 +182,7 @@ struct ControlButton: View {
             .frame(maxWidth: .infinity, minHeight: buttonHeight, maxHeight: buttonHeight)
             .background(
                 RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.button)
-                    .stroke(DesignSystem.Colors.primaryGradient, 
+                    .stroke(themeManager.currentTheme.primaryGradient, 
                            lineWidth: DesignSystem.Borders.primaryBorder.lineWidth)
             )
             .scaleEffect(isPressed ? 0.95 : 1.0)

@@ -120,6 +120,7 @@ struct DigitalClockView: View {
 
 /// 时间数字显示组件，避免重复调用字符串计算
 struct TimeDigitView: View {
+    @ObservedObject private var themeManager = ThemeManager.shared
     let text: String
     let size: CGFloat
     
@@ -130,7 +131,7 @@ struct TimeDigitView: View {
             .overlay(
                 Text(text)
                     .font(DesignSystem.Fonts.clockDigit(size: size))
-                    .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                    .foregroundStyle(themeManager.currentTheme.primaryGradient)
             )
             .shadow(color: DesignSystem.Shadows.clockDigitShadow.color,
                    radius: DesignSystem.Shadows.clockDigitShadow.radius,
