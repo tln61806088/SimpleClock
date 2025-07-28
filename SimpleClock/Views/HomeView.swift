@@ -4,6 +4,7 @@ import SwiftUI
 /// 整合所有功能组件：数字时钟、计时设置、操作按钮、语音识别
 struct HomeView: View {
     
+    @ObservedObject private var themeManager = ThemeManager.shared
     @StateObject private var timerViewModel = TimerViewModel()
     @State private var timerSettings = TimerSettings.default
     
@@ -15,18 +16,31 @@ struct HomeView: View {
                 VStack(spacing: 0) {
                     // 上方固定内容区域 - 不滚动
                     VStack(spacing: DesignSystem.Spacing.large) {
-                        // 自定义标题
-                        Text("极简语音计时")
-                            .font(DesignSystem.Fonts.title(size: DesignSystem.Sizes.titleText))
-                            .foregroundStyle(DesignSystem.Colors.primaryGradient)
-                            .shadow(color: DesignSystem.Shadows.primaryShadow.color,
-                                   radius: DesignSystem.Shadows.primaryShadow.radius,
-                                   x: DesignSystem.Shadows.primaryShadow.x,
-                                   y: DesignSystem.Shadows.primaryShadow.y)
-                            .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
-                                   radius: DesignSystem.Shadows.secondaryShadow.radius,
-                                   x: DesignSystem.Shadows.secondaryShadow.x,
-                                   y: DesignSystem.Shadows.secondaryShadow.y)
+                        // 自定义导航栏
+                        HStack {
+                            // 左侧颜色选择器
+                            ColorThemePicker()
+                            
+                            Spacer()
+                            
+                            // 中央标题
+                            Text("极简语音计时")
+                                .font(DesignSystem.Fonts.title(size: DesignSystem.Sizes.titleText))
+                                .foregroundStyle(DesignSystem.Colors.primaryGradient)
+                                .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                                       radius: DesignSystem.Shadows.primaryShadow.radius,
+                                       x: DesignSystem.Shadows.primaryShadow.x,
+                                       y: DesignSystem.Shadows.primaryShadow.y)
+                                .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                                       radius: DesignSystem.Shadows.secondaryShadow.radius,
+                                       x: DesignSystem.Shadows.secondaryShadow.x,
+                                       y: DesignSystem.Shadows.secondaryShadow.y)
+                            
+                            Spacer()
+                            
+                            // 右侧占位（保持居中对称）
+                            Color.clear.frame(width: DesignSystem.Sizes.labelIcon + 2, height: DesignSystem.Sizes.labelIcon + 2)
+                        }
                         
                         // 时钟显示区域
                         clockDisplayArea

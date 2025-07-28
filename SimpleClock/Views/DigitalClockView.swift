@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct DigitalClockView: View {
+    @ObservedObject private var themeManager = ThemeManager.shared
     @State private var currentTime = Date()
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     

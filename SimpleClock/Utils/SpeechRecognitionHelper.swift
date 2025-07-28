@@ -95,6 +95,9 @@ class SpeechRecognitionHelper: NSObject {
         // 取消识别任务
         recognitionTask?.cancel()
         recognitionTask = nil
+        
+        // 恢复音频会话到播放模式
+        AudioSessionManager.shared.restorePlaybackMode()
     }
     
     /// 获取最后识别的文本

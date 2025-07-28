@@ -16,14 +16,13 @@ enum VoiceCommand: Equatable {
 }
 
 /// 语音识别按钮
-/// 长方形按钮，点击开始录音，再次点击或5秒后自动结束录音并进行语音识别
+/// 长方形按钮，点击震动并开始语音识别，UI保持不变
 struct VoiceRecognitionButton: View {
     
+    @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject var viewModel: TimerViewModel
-    @State private var isRecording = false
-    @State private var isPreparingToRecord = false
-    @State private var recordingAnimation = false
     @State private var recordingTimer: Timer?
+    @State private var isRecording = false
     
     var body: some View {
         VStack(spacing: DesignSystem.Spacing.voiceButtonInternalSpacing) {
@@ -34,33 +33,16 @@ struct VoiceRecognitionButton: View {
                     .stroke(DesignSystem.Colors.primaryGradient, lineWidth: DesignSystem.Borders.primaryBorder.lineWidth)
                     .frame(maxWidth: .infinity, minHeight: DesignSystem.Sizes.voiceButtonHeight, maxHeight: DesignSystem.Sizes.voiceButtonHeight)
                 
-                // 录音动画波纹 - 蓝青渐变效果
-                if isRecording {
-                    ForEach(0..<4, id: \.self) { index in
-                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.voiceButton)
-                            .stroke(DesignSystem.Colors.primaryGradient.opacity(0.6), lineWidth: DesignSystem.Borders.animationBorder.lineWidth)
-                            .frame(maxWidth: .infinity, minHeight: DesignSystem.Sizes.voiceButtonHeight, maxHeight: DesignSystem.Sizes.voiceButtonHeight)
-                            .scaleEffect(recordingAnimation ? 1.3 : 1.0)
-                            .opacity(recordingAnimation ? 0.0 : 0.9)
-                            .animation(
-                                .easeOut(duration: 1.5)
-                                .repeatForever(autoreverses: false)
-                                .delay(Double(index) * 0.3),
-                                value: recordingAnimation
-                            )
-                    }
-                }
-                
                 // 图标和文字
                 VStack(spacing: DesignSystem.Spacing.voiceButtonInternalSpacing) {
-                    // 语音图标
+                    // 语音图标 - 固定为麦克风图标
                     ZStack {
                         // 图标背景圆形边框
                         Circle()
                             .stroke(DesignSystem.Colors.primaryGradient.opacity(0.3), lineWidth: DesignSystem.Borders.thinBorder.lineWidth)
                             .frame(width: DesignSystem.Sizes.voiceIconBackground, height: DesignSystem.Sizes.voiceIconBackground)
                         
-                        Image(systemName: currentIcon)
+                        Image(systemName: "mic.circle.fill")
                             .font(DesignSystem.Fonts.buttonIcon(size: DesignSystem.Sizes.voiceIcon))
                             .foregroundStyle(DesignSystem.Colors.primaryGradient)
                             .shadow(color: DesignSystem.Shadows.primaryShadow.color,
@@ -71,12 +53,12 @@ struct VoiceRecognitionButton: View {
                                    radius: DesignSystem.Shadows.secondaryShadow.radius,
                                    x: DesignSystem.Shadows.secondaryShadow.x,
                                    y: DesignSystem.Shadows.secondaryShadow.y)
-                            .scaleEffect(isRecording ? 1.1 : 1.0)
-                            .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isRecording)
+                            .scaleEffect(isRecording ? 1.5 : 1.0)
+                            .animation(isRecording ? .easeInOut(duration: 0.6).repeatForever(autoreverses: true) : .easeOut(duration: 0.2), value: isRecording)
                     }
                     
-                    // 状态文字
-                    Text(currentStateText)
+                    // 状态文字 - 固定为"语音识别"
+                    Text("语音识别")
                         .font(DesignSystem.Fonts.buttonText(size: DesignSystem.Sizes.voiceStateText))
                         .foregroundStyle(DesignSystem.Colors.primaryGradient)
                         .shadow(color: DesignSystem.Shadows.primaryShadow.color,
@@ -101,157 +83,86 @@ struct VoiceRecognitionButton: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("语音识别按钮")
-        .accessibilityHint("点击开始语音识别，再次点击结束")
+        .accessibilityHint("点击开始语音识别")
         .accessibilityAddTraits(.isButton)
     }
     
     @State private var isPressed = false
     
-    /// 当前图标
-    private var currentIcon: String {
-        if isRecording {
-            return "waveform.circle.fill"
-        } else if isPreparingToRecord {
-            return "speaker.wave.3.fill"
-        } else {
-            return "mic.circle.fill"
-        }
-    }
-    
-    /// 当前状态文字
-    private var currentStateText: String {
-        if isRecording {
-            return "录音中"
-        } else if isPreparingToRecord {
-            return "请说话"
-        } else {
-            return "语音识别"
-        }
-    }
-    
-    /// 当前提示文字
-    private var currentHintText: String {
-        if isRecording {
-            return "录音中，点击结束"
-        } else if isPreparingToRecord {
-            return "正在播报提示，请稍候..."
-        } else {
-            return "点击开始语音识别\n说出您的计时要求"
-        }
-    }
-    
-    /// 处理点击手势
+    /// 处理点击手势 - 支持开始/停止录音
     private func handleTapGesture() {
         if isRecording {
-            // 正在录音，点击结束
-            stopRecording()
-        } else if isPreparingToRecord {
-            // 正在准备阶段，点击取消
-            cancelRecording()
+            // 正在录音，点击停止
+            finishVoiceRecognition()
         } else {
             // 未在录音，点击开始
-            startRecording()
+            HapticHelper.shared.voiceRecognitionStartImpact()
+            startVoiceRecognition()
         }
     }
     
-    /// 取消录音准备
-    private func cancelRecording() {
-        print("用户取消语音识别")
-        isPreparingToRecord = false
-        isRecording = false
-        recordingAnimation = false
+    /// 开始语音识别 - 简化版本
+    private func startVoiceRecognition() {
+        print("开始语音识别 - 简化版本")
         
-        // 恢复后台音频
-        resumeBackgroundAudioIfNeeded()
-    }
-    
-    /// 开始录音
-    private func startRecording() {
-        guard !isRecording && !isPreparingToRecord else { return }
+        // 降低后台音乐音量，但不停止播放
+        ContinuousAudioPlayer.shared.setVolume(0.001)
         
-        // 设置准备状态
-        isPreparingToRecord = true
-        
-        // 立即震动反馈和语音提示
-        print("点击语音识别：立即震动和播报提示")
-        HapticHelper.shared.voiceRecognitionStartImpact()
-        
-        // 关键修复：不停止后台音乐，而是降低音量，保持音频会话活跃
-        print("降低后台音乐音量，准备语音识别")
-        ContinuousAudioPlayer.shared.setVolume(0.001)  // 几乎静音但保持播放
-        
-        // 立即播报提示
+        // 播报提示
         SpeechHelper.shared.speak("请说出您的计时要求")
         
-        // 等待提示播报完成后再开始录音（约2秒）
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            guard self.isPreparingToRecord && !self.isRecording else { return } // 确保状态正确
-            
-            self.isPreparingToRecord = false
+        // 等待提示播报完成后开始录音和动画（约2秒）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            // 开始录音动画
             self.isRecording = true
-            self.recordingAnimation = true
             
-            // 开始语音识别录音
-            print("提示播报完成，开始语音识别录音")
+            // 开始语音识别
             SpeechRecognitionHelper.shared.startRecording { _ in
-                // 录音过程中不处理结果，等手动停止或超时后处理
+                // 录音过程中不处理结果
             }
             
-            // 启动5秒计时器，自动停止录音
+            // 5秒后自动停止并处理结果
             self.recordingTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
-                print("5秒录音时间到，自动停止录音")
-                // 需要通过状态检查来避免重复调用
-                if self.isRecording {
-                    self.stopRecording()
-                }
+                self.finishVoiceRecognition()
             }
         }
     }
     
-    /// 停止录音
-    private func stopRecording() {
-        guard isRecording else { return }
+    /// 完成语音识别
+    private func finishVoiceRecognition() {
+        print("完成语音识别")
+        
+        // 立即停止录音动画
+        isRecording = false
         
         // 清理计时器
         recordingTimer?.invalidate()
         recordingTimer = nil
         
-        // 清理所有状态
-        isRecording = false
-        isPreparingToRecord = false
-        recordingAnimation = false
-        
-        // 中等强度震动反馈 - 停止录音
-        print("触发停止录音震动")
+        // 停止录音震动反馈
         HapticHelper.shared.voiceRecognitionEndImpact()
         
-        // 延长0.5秒录音时间，确保捕获完整语音
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            // 停止语音识别
-            print("延长录音结束，停止语音识别")
-            SpeechRecognitionHelper.shared.stopRecording()
-            
-            // 再等待0.3秒后处理识别结果，给语音识别更多处理时间
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                if let recognizedText = SpeechRecognitionHelper.shared.getLastRecognizedText(), 
-                   !recognizedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                   recognizedText != "未检测到语音" && recognizedText != "识别失败" {
-                    print("✅ 语音识别成功: \(recognizedText)")
-                    
-                    // 识别成功震动反馈
-                    HapticHelper.shared.voiceRecognitionCompleteImpact()
-                    
-                    // 清空识别结果，避免重复使用
-                    SpeechRecognitionHelper.shared.clearLastRecognizedText()
-                    self.handleVoiceRecognitionResult(recognizedText)
-                } else {
-                    let debugText = SpeechRecognitionHelper.shared.getLastRecognizedText() ?? "nil"
-                    print("❌ 语音识别失败，当前结果: \(debugText)")
-                    // 清空无效结果
-                    SpeechRecognitionHelper.shared.clearLastRecognizedText()
-                    // 没有识别结果时也要恢复后台音频
-                    self.handleVoiceRecognitionResult("未检测到语音")
-                }
+        // 停止语音识别
+        SpeechRecognitionHelper.shared.stopRecording()
+        
+        // 处理识别结果
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            if let recognizedText = SpeechRecognitionHelper.shared.getLastRecognizedText(), 
+               !recognizedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               recognizedText != "未检测到语音" && recognizedText != "识别失败" {
+                print("✅ 语音识别成功: \(recognizedText)")
+                
+                // 识别成功震动反馈
+                HapticHelper.shared.voiceRecognitionCompleteImpact()
+                
+                // 清空识别结果，避免重复使用
+                SpeechRecognitionHelper.shared.clearLastRecognizedText()
+                self.handleVoiceRecognitionResult(recognizedText)
+            } else {
+                print("❌ 语音识别失败")
+                // 清空无效结果
+                SpeechRecognitionHelper.shared.clearLastRecognizedText()
+                self.handleVoiceRecognitionResult("未检测到语音")
             }
         }
     }
@@ -259,6 +170,7 @@ struct VoiceRecognitionButton: View {
     /// 处理语音识别结果 - 使用苹果框架进行智能指令识别
     private func handleVoiceRecognitionResult(_ result: String) {
         print("开始处理语音指令: \(result)")
+        
         print("当前计时器状态 - isRunning: \(viewModel.isRunning), remainingSeconds: \(viewModel.remainingSeconds)")
         
         // 使用苹果的Natural Language框架进行指令识别
@@ -280,7 +192,7 @@ struct VoiceRecognitionButton: View {
             SpeechHelper.shared.speak(recognitionMessage)
             
             // 等待播报完成后再执行相应操作
-            let recognitionSpeechDuration = Double(recognitionMessage.count) * 0.15 + 1.0
+            let recognitionSpeechDuration = Double(recognitionMessage.count) * 0.2 + 1.0
             DispatchQueue.main.asyncAfter(deadline: .now() + recognitionSpeechDuration) {
                 self.executeCommand(command, originalText: result)
             }
@@ -359,15 +271,10 @@ struct VoiceRecognitionButton: View {
     
     /// 检查文本是否包含间隔关键词
     private func hasIntervalKeyword(in text: String) -> Bool {
-        // 精确匹配间隔关键词，避免误判
-        return text.hasPrefix("间隔") || 
-               text.hasPrefix("每隔") || 
-               text.hasPrefix("每") || 
-               text.hasPrefix("隔") ||
-               text.contains("间隔") ||
+        // 更精确的间隔关键词匹配，避免误判
+        return text.contains("间隔") ||
                text.contains("每隔") ||
-               (text.contains("每") && (text.contains("分钟") || text.contains("小时"))) ||
-               (text.contains("隔") && (text.contains("分钟") || text.contains("小时")))
+               (text.contains("每") && !text.hasPrefix("计时") && (text.contains("分钟") || text.contains("小时")))
     }
     
     /// 从文本中提取计时时长
@@ -392,7 +299,7 @@ struct VoiceRecognitionButton: View {
             let startIndex = timerRange.upperBound
             
             // 找到间隔关键词的位置，限制搜索范围
-            let intervalKeywords = ["间隔", "每隔", "每", "隔"]
+            let intervalKeywords = ["间隔", "每隔"]  // 只匹配明确的间隔关键词
             var intervalStart: String.Index?
             
             for intervalKeyword in intervalKeywords {
@@ -463,7 +370,7 @@ struct VoiceRecognitionButton: View {
         
         // 查找"小时"前面的数字
         for number in numbers {
-            if number >= 1 && number <= 12 { // 最多12小时
+            if number >= 1 && number <= 12 { // 最多12小时（720分钟）
                 // 验证这个数字是否在"小时"之前
                 if let hourIndex = timerText.range(of: "小时"),
                    let _ = findNumberStringBeforeIndexInText(in: timerText, beforeRange: hourIndex, targetNumber: number) {
@@ -550,7 +457,7 @@ struct VoiceRecognitionButton: View {
         
         // 查找"小时"前面的数字
         for number in numbers {
-            if number >= 1 && number <= 12 { // 最多12小时
+            if number >= 1 && number <= 12 { // 最多12小时（720分钟）
                 // 验证这个数字是否在"小时"之前
                 if let hourIndex = text.range(of: "小时"),
                    let _ = findNumberStringBeforeIndex(in: text, beforeRange: hourIndex, targetNumber: number) {
@@ -606,7 +513,7 @@ struct VoiceRecognitionButton: View {
     /// 从文本中提取间隔时间
     private func extractIntervalFromText(_ text: String) -> Int? {
         // 检查是否包含任何间隔关键词
-        let intervalKeywords = ["间隔", "每隔", "每", "隔"]
+        let intervalKeywords = ["间隔", "每隔"]  // 只匹配明确的间隔关键词
         let hasIntervalKeyword = intervalKeywords.contains { text.contains($0) }
         
         if hasIntervalKeyword {
@@ -649,7 +556,7 @@ struct VoiceRecognitionButton: View {
     /// 从间隔文本中提取小时数
     private func extractIntervalHoursFromText(_ text: String) -> Int? {
         let numbers = extractNumbers(from: text)
-        let intervalKeywords = ["间隔", "每隔", "每", "隔"]
+        let intervalKeywords = ["间隔", "每隔"]  // 只匹配明确的间隔关键词
         
         print("🔍 extractIntervalHoursFromText 开始分析: '\(text)'")
         
@@ -710,7 +617,7 @@ struct VoiceRecognitionButton: View {
     /// 提取间隔中小时后面的分钟数
     private func extractIntervalMinutesAfterHours(_ text: String) -> Int? {
         let numbers = extractNumbers(from: text)
-        let intervalKeywords = ["间隔", "每隔", "每", "隔"]
+        let intervalKeywords = ["间隔", "每隔"]  // 只匹配明确的间隔关键词
         
         print("🔍 extractIntervalMinutesAfterHours 开始分析: '\(text)'")
         
@@ -759,7 +666,7 @@ struct VoiceRecognitionButton: View {
     /// 从间隔文本中提取分钟数
     private func extractIntervalMinutesFromText(_ text: String) -> Int? {
         let numbers = extractNumbers(from: text)
-        let intervalKeywords = ["间隔", "每隔", "每", "隔"]
+        let intervalKeywords = ["间隔", "每隔"]  // 只匹配明确的间隔关键词
         
         // 找到最早出现的间隔关键词
         var earliestIntervalIndex: String.Index?
@@ -939,21 +846,36 @@ struct VoiceRecognitionButton: View {
             speakConfirmationOnly("开始计时\(durationText)，间隔\(intervalText)")
             
         case .noSpeechDetected:
-            speakConfirmationOnly("请点击按钮后再说话")
+            speakConfirmationOnly("未识别到有效计时要求，请再试一次")
             
         case .unrecognized(let text):
-            // 未识别的指令，直接播报原文
-            speakConfirmationOnly(text)
+            // 未识别的指令，提供友好的提示
+            if text.isEmpty || text == "未检测到语音" || text == "识别失败" {
+                speakConfirmationOnly("未识别到有效计时要求，请再试一次")
+            } else {
+                speakConfirmationOnly("未识别到有效计时要求，请再试一次")
+            }
         }
     }
     
     /// 只播报确认信息，不执行操作
     private func speakConfirmationOnly(_ message: String) {
         if !message.isEmpty {
+            // 播报前暂时降低后台音乐音量，确保语音清晰
+            if ContinuousAudioPlayer.shared.isContinuouslyPlaying {
+                ContinuousAudioPlayer.shared.setVolume(0.001)
+            }
+            
             SpeechHelper.shared.speak(message)
             
             // 等待播报完成后恢复后台音频
-            let estimatedSpeechDuration = Double(message.count) * 0.15 + 1.0
+            let estimatedSpeechDuration: Double
+            if message == "开始计时" {
+                estimatedSpeechDuration = 2.1  // "开始计时"单独设置为2.1秒
+            } else {
+                estimatedSpeechDuration = Double(message.count) * 0.2 + 1.0  // 其他消息使用通用公式
+            }
+            
             DispatchQueue.main.asyncAfter(deadline: .now() + estimatedSpeechDuration) {
                 self.resumeBackgroundAudioIfNeeded()
             }
@@ -969,7 +891,7 @@ struct VoiceRecognitionButton: View {
             SpeechHelper.shared.speak(message)
             
             // 等待播报完成后处理音频
-            let estimatedSpeechDuration = Double(message.count) * 0.15 + 1.0
+            let estimatedSpeechDuration = Double(message.count) * 0.2 + 1.0
             DispatchQueue.main.asyncAfter(deadline: .now() + estimatedSpeechDuration) {
                 if shouldMaintainAudio {
                     // 暂停计时时，强制恢复后台音乐播放
@@ -990,12 +912,11 @@ struct VoiceRecognitionButton: View {
         }
     }
     
-    /// 如果需要，恢复后台音频播放
+    /// 如果需要，恢复后台音频播放 - 简化版本
     private func resumeBackgroundAudioIfNeeded() {
         // 只有在计时器运行时才恢复后台音乐
         if viewModel.isRunning {
             print("恢复后台音乐播放，保持静音音量")
-            // 关键修复：如果已在播放，保持静音音量；如果未播放，则启动播放
             if ContinuousAudioPlayer.shared.isContinuouslyPlaying {
                 ContinuousAudioPlayer.shared.setVolume(0.005)  // 保持静音音量
             } else {

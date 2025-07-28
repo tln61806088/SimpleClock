@@ -5,6 +5,7 @@ import SwiftUI
 /// 右侧：提醒间隔选择器（1,5,10,15,30,60,90分钟）
 struct TimerPickerView: View {
     
+    @ObservedObject private var themeManager = ThemeManager.shared
     @Binding var settings: TimerSettings
     let isEnabled: Bool  // 新增：控制选择器是否可用
     
