@@ -103,8 +103,6 @@ struct VoiceRecognitionButton: View {
     
     /// 开始语音识别 - 简化版本
     private func startVoiceRecognition() {
-        print("开始语音识别 - 简化版本")
-        
         // 降低后台音乐音量，但不停止播放
         ContinuousAudioPlayer.shared.setVolume(0.001)
         
@@ -130,8 +128,6 @@ struct VoiceRecognitionButton: View {
     
     /// 完成语音识别
     private func finishVoiceRecognition() {
-        print("完成语音识别")
-        
         // 立即停止录音动画
         isRecording = false
         
@@ -150,7 +146,6 @@ struct VoiceRecognitionButton: View {
             if let recognizedText = SpeechRecognitionHelper.shared.getLastRecognizedText(), 
                !recognizedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                recognizedText != "未检测到语音" && recognizedText != "识别失败" {
-                print("✅ 语音识别成功: \(recognizedText)")
                 
                 // 识别成功震动反馈
                 HapticHelper.shared.voiceRecognitionCompleteImpact()
@@ -159,7 +154,6 @@ struct VoiceRecognitionButton: View {
                 SpeechRecognitionHelper.shared.clearLastRecognizedText()
                 self.handleVoiceRecognitionResult(recognizedText)
             } else {
-                print("❌ 语音识别失败")
                 // 清空无效结果
                 SpeechRecognitionHelper.shared.clearLastRecognizedText()
                 self.handleVoiceRecognitionResult("未检测到语音")
@@ -169,13 +163,10 @@ struct VoiceRecognitionButton: View {
     
     /// 处理语音识别结果 - 使用苹果框架进行智能指令识别
     private func handleVoiceRecognitionResult(_ result: String) {
-        print("开始处理语音指令: \(result)")
         
-        print("当前计时器状态 - isRunning: \(viewModel.isRunning), remainingSeconds: \(viewModel.remainingSeconds)")
         
         // 使用苹果的Natural Language框架进行指令识别
         let command = intelligentCommandRecognition(from: result)
-        print("智能识别到的指令: \(command)")
         
         // 对于常用指令，不播报"识别到指令"，直接执行
         let skipRecognitionAnnouncement: [VoiceCommand] = [
@@ -203,15 +194,12 @@ struct VoiceRecognitionButton: View {
     private func intelligentCommandRecognition(from text: String) -> VoiceCommand {
         let lowercaseText = text.lowercased().replacingOccurrences(of: " ", with: "")
         
-        print("🔍 开始解析指令: \(text)")
         
         // 优先检查复合指令格式
         if text.hasPrefix("计时") && hasIntervalKeyword(in: text) {
-            print("📝 识别为复合指令格式")
             // "计时X小时Y分钟间隔Z分钟" 或 "计时X分钟每隔Y分钟" 或 "计时X分钟每Y分钟" 等复合格式
             let duration = extractDurationFromText(text)
             let interval = extractIntervalFromText(text)
-            print("⏱️ 提取结果 - 时长: \(duration?.description ?? "nil"), 间隔: \(interval?.description ?? "nil")")
             
             if let duration = duration, let interval = interval {
                 return .setTimerWithInterval(duration: duration, interval: interval)
@@ -281,8 +269,6 @@ struct VoiceRecognitionButton: View {
     /// 从文本中提取计时时长
     private func extractDurationFromText(_ text: String) -> Int? {
         var totalMinutes = 0
-        print("🕐 开始提取计时时长，文本: '\(text)'")
-        
         // 先找到计时关键词的位置，只在计时部分查找时长
         let timerKeywords = ["计时"]
         var timerKeywordRange: Range<String.Index>?
@@ -317,57 +303,46 @@ struct VoiceRecognitionButton: View {
             } else {
                 timerText = String(text[startIndex...])
             }
-            print("🎯 计时部分文本: '\(timerText)'")
         }
         
         // 在计时部分提取时长
         if timerText.contains("小时") && timerText.contains("分钟") {
-            print("📝 检测到小时+分钟复合格式")
             // 提取计时部分的小时数
             if let hours = extractHoursFromTimerText(timerText) {
                 totalMinutes += hours * 60
-                print("✅ 计时部分小时数: \(hours)")
             }
             // 提取计时部分的分钟数（小时后面的分钟）
             if let minutes = extractMinutesAfterHoursInTimerText(timerText) {
                 totalMinutes += minutes
-                print("✅ 计时部分分钟数: \(minutes)")
             }
         }
         else if timerText.contains("小时") {
-            print("📝 检测到纯小时格式")
             if let hours = extractHoursFromTimerText(timerText) {
                 totalMinutes = hours * 60
-                print("✅ 计时部分小时数: \(hours)")
             }
         }
         else if timerText.contains("分钟") {
-            print("📝 检测到纯分钟格式")
             let numbers = extractNumbers(from: timerText)
             for number in numbers {
                 if number >= 1 && number <= 720 {
                     totalMinutes = number
-                    print("✅ 计时部分分钟数: \(number)")
                     break
                 }
             }
         }
         
-        print("⏱️ 计算总时长: \(totalMinutes)分钟")
         
         // 验证总时长是否在允许范围内
         if TimerSettings.durationRange.contains(totalMinutes) {
             return totalMinutes
         }
         
-        print("❌ 时长超出范围: \(totalMinutes)")
         return nil
     }
     
     /// 从计时部分文本中提取小时数
     private func extractHoursFromTimerText(_ timerText: String) -> Int? {
         let numbers = extractNumbers(from: timerText)
-        print("🔍 计时部分提取小时，文本: '\(timerText)'，数字: \(numbers)")
         
         // 查找"小时"前面的数字
         for number in numbers {
@@ -375,19 +350,16 @@ struct VoiceRecognitionButton: View {
                 // 验证这个数字是否在"小时"之前
                 if let hourIndex = timerText.range(of: "小时"),
                    let _ = findNumberStringBeforeIndexInText(in: timerText, beforeRange: hourIndex, targetNumber: number) {
-                    print("✅ 计时部分找到小时数: \(number)")
                     return number
                 }
             }
         }
-        print("❌ 计时部分未找到有效小时数")
         return nil
     }
     
     /// 从计时部分文本中提取小时后面的分钟数
     private func extractMinutesAfterHoursInTimerText(_ timerText: String) -> Int? {
         let numbers = extractNumbers(from: timerText)
-        print("🔍 计时部分提取分钟，文本: '\(timerText)'，数字: \(numbers)")
         
         // 查找"分钟"前面的数字，但要在"小时"后面
         if let hourIndex = timerText.range(of: "小时") {
@@ -396,7 +368,6 @@ struct VoiceRecognitionButton: View {
             for number in numbers {
                 if number >= 0 && number <= 59 { // 分钟数应该小于60
                     if textAfterHour.contains("\(number)") && textAfterHour.contains("分钟") {
-                        print("✅ 计时部分找到分钟数: \(number)")
                         return number
                     }
                     
@@ -418,14 +389,12 @@ struct VoiceRecognitionButton: View {
                     
                     for (chinese, arabic) in chineseToArabic {
                         if arabic == number && textAfterHour.contains(chinese) && textAfterHour.contains("分钟") {
-                            print("✅ 计时部分找到中文分钟数: \(chinese) = \(number)")
                             return number
                         }
                     }
                 }
             }
         }
-        print("❌ 计时部分未找到有效分钟数")
         return nil
     }
     
@@ -559,7 +528,6 @@ struct VoiceRecognitionButton: View {
         let numbers = extractNumbers(from: text)
         let intervalKeywords = ["间隔", "每隔"]  // 只匹配明确的间隔关键词
         
-        print("🔍 extractIntervalHoursFromText 开始分析: '\(text)'")
         
         // 找到最早出现的间隔关键词
         var earliestIntervalRange: Range<String.Index>?
@@ -574,18 +542,15 @@ struct VoiceRecognitionButton: View {
         // 在间隔关键词之后查找"小时"
         if let intervalRange = earliestIntervalRange {
             let searchText = String(text[intervalRange.upperBound...])
-            print("🔍 间隔关键词后的文本: '\(searchText)'")
             
             if let hourIndex = searchText.range(of: "小时") {
                 // 提取间隔关键词到小时之间的文本
                 let intervalToHourText = String(searchText[..<hourIndex.lowerBound])
-                print("🔍 间隔到小时之间的文本: '\(intervalToHourText)'")
                 
                 for number in numbers {
                     if number >= 1 && number <= 12 {
                         // 检查这个数字是否在间隔到小时的文本中
                         if intervalToHourText.contains("\(number)") {
-                            print("✅ 找到间隔小时数: \(number)")
                             return number
                         }
                         
@@ -598,20 +563,16 @@ struct VoiceRecognitionButton: View {
                         
                         for (chinese, arabic) in chineseToArabic {
                             if arabic == number && intervalToHourText.contains(chinese) {
-                                print("✅ 找到中文间隔小时数: \(chinese) = \(number)")
                                 return number
                             }
                         }
                     }
                 }
             } else {
-                print("❌ 间隔关键词后未找到'小时'")
             }
         } else {
-            print("❌ 未找到间隔关键词")
         }
         
-        print("❌ 未找到有效的间隔小时数")
         return nil
     }
     
@@ -620,7 +581,6 @@ struct VoiceRecognitionButton: View {
         let numbers = extractNumbers(from: text)
         let intervalKeywords = ["间隔", "每隔"]  // 只匹配明确的间隔关键词
         
-        print("🔍 extractIntervalMinutesAfterHours 开始分析: '\(text)'")
         
         // 找到最早出现的间隔关键词
         var earliestIntervalRange: Range<String.Index>?
@@ -635,32 +595,25 @@ struct VoiceRecognitionButton: View {
         // 在间隔关键词之后查找"小时"和"分钟"
         if let intervalRange = earliestIntervalRange {
             let searchText = String(text[intervalRange.upperBound...])
-            print("🔍 间隔关键词后的文本: '\(searchText)'")
             
             if let hourIndex = searchText.range(of: "小时"),
                let minuteIndex = searchText.range(of: "分钟") {
                 // 确保分钟在小时之后
                 if hourIndex.upperBound <= minuteIndex.lowerBound {
                     let minuteText = String(searchText[hourIndex.upperBound..<minuteIndex.lowerBound])
-                    print("🔍 小时到分钟之间的文本: '\(minuteText)'")
                     
                     for number in numbers {
                         if number >= 1 && number <= 59 && minuteText.contains("\(number)") {
-                            print("✅ 找到间隔分钟数: \(number)")
                             return number
                         }
                     }
                 } else {
-                    print("⚠️ 分钟关键词在小时之前，跳过")
                 }
             } else {
-                print("❌ 间隔关键词后未找到完整的'小时'和'分钟'")
             }
         } else {
-            print("❌ 未找到间隔关键词")
         }
         
-        print("❌ 未找到有效的间隔分钟数")
         return nil
     }
     
@@ -752,7 +705,6 @@ struct VoiceRecognitionButton: View {
         case .startTimer:
             // 开始计时：使用当前界面显示的设置
             if !viewModel.isRunning {
-                print("语音指令：开始计时")
                 viewModel.startTimer()
                 speakConfirmationOnly("开始计时")
             } else {
@@ -762,7 +714,6 @@ struct VoiceRecognitionButton: View {
         case .pauseTimer:
             // 暂停计时
             if viewModel.isRunning {
-                print("语音指令：暂停计时")
                 viewModel.pauseTimer()
                 // 暂停计时时，保持后台音乐继续播放
                 speakConfirmationOnlyWithAudio("暂停计时", shouldMaintainAudio: true)
@@ -773,7 +724,6 @@ struct VoiceRecognitionButton: View {
         case .resumeTimer:
             // 恢复计时
             if !viewModel.isRunning && viewModel.remainingSeconds > 0 {
-                print("语音指令：恢复计时")
                 viewModel.startTimer()
                 speakConfirmationOnly("恢复计时")
             } else {
@@ -782,13 +732,11 @@ struct VoiceRecognitionButton: View {
             
         case .stopTimer:
             // 结束计时
-            print("语音指令：结束计时")
             viewModel.stopTimer()
             speakConfirmationOnly("结束计时")
             
         case .speakTime:
             // 时间播报
-            print("语音指令：时间播报")
             speakConfirmationOnly("") // 不需要确认，直接播报
             SpeechHelper.shared.speakCurrentTime()
             // 播报完成后恢复后台音频
@@ -798,7 +746,6 @@ struct VoiceRecognitionButton: View {
             
         case .speakRemainingTime:
             // 剩余时间播报
-            print("语音指令：剩余时间")
             if viewModel.remainingSeconds == 0 && !viewModel.isRunning {
                 let message = "设置的计时时长为\(viewModel.settings.duration)分钟"
                 speakConfirmationOnly(message)
@@ -811,7 +758,6 @@ struct VoiceRecognitionButton: View {
             }
             
         case .setTimer(let duration):
-            print("语音指令：设置计时时长为\(duration)分钟并开始")
             // 先停止当前计时器（如果正在运行）
             if viewModel.isRunning {
                 viewModel.stopTimer()
@@ -824,7 +770,6 @@ struct VoiceRecognitionButton: View {
             speakConfirmationOnly("开始计时\(durationText)")
             
         case .setInterval(let interval):
-            print("语音指令：设置提醒间隔为\(interval)分钟")
             var newSettings = viewModel.settings
             newSettings.interval = interval
             viewModel.updateSettings(newSettings)
@@ -832,7 +777,6 @@ struct VoiceRecognitionButton: View {
             speakConfirmationOnly("设置提醒间隔为\(intervalText)")
             
         case .setTimerWithInterval(let duration, let interval):
-            print("语音指令：设置计时\(duration)分钟，间隔\(interval)分钟并开始")
             // 先停止当前计时器（如果正在运行）
             if viewModel.isRunning {
                 viewModel.stopTimer()
@@ -896,8 +840,9 @@ struct VoiceRecognitionButton: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + estimatedSpeechDuration) {
                 if shouldMaintainAudio {
                     // 暂停计时时，强制恢复后台音乐播放
-                    print("语音暂停计时：强制恢复后台音乐")
-                    ContinuousAudioPlayer.shared.startContinuousPlayback()
+                    DispatchQueue.main.async {
+                        ContinuousAudioPlayer.shared.startContinuousPlayback()
+                    }
                 } else {
                     self.resumeBackgroundAudioIfNeeded()
                 }
@@ -905,8 +850,9 @@ struct VoiceRecognitionButton: View {
         } else {
             if shouldMaintainAudio {
                 // 没有播报内容，立即恢复后台音频
-                print("语音暂停计时：立即恢复后台音乐")
-                ContinuousAudioPlayer.shared.startContinuousPlayback()
+                DispatchQueue.main.async {
+                    ContinuousAudioPlayer.shared.startContinuousPlayback()
+                }
             } else {
                 resumeBackgroundAudioIfNeeded()
             }
@@ -917,14 +863,14 @@ struct VoiceRecognitionButton: View {
     private func resumeBackgroundAudioIfNeeded() {
         // 只有在计时器运行时才恢复后台音乐
         if viewModel.isRunning {
-            print("恢复后台音乐播放，保持静音音量")
             if ContinuousAudioPlayer.shared.isContinuouslyPlaying {
                 ContinuousAudioPlayer.shared.setVolume(0.005)  // 保持静音音量
             } else {
-                ContinuousAudioPlayer.shared.startContinuousPlayback()
+                // 避免无限递归，只在真正需要时启动
+                DispatchQueue.main.async {
+                    ContinuousAudioPlayer.shared.startContinuousPlayback()
+                }
             }
-        } else {
-            print("计时器未运行，不恢复后台音乐")
         }
     }
     
