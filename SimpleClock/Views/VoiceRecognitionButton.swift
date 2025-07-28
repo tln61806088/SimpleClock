@@ -139,13 +139,6 @@ struct VoiceRecognitionButton: View {
             .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
                 isPressed = pressing
             }, perform: {})
-            
-            // 提示文字
-            Text(currentHintText)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 8)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("语音识别按钮")

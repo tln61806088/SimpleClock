@@ -65,7 +65,7 @@ struct TimerPickerView: View {
                         ForEach(Array(TimerSettings.durationRange), id: \.self) { duration in
                             Text("\(duration)分钟")
                                 .tag(duration)
-                                .font(.system(size: 18, weight: .ultraLight, design: .monospaced))
+                                .font(.system(size: 18, weight: .bold, design: .monospaced))
                                 .foregroundStyle(
                                     LinearGradient(
                                         gradient: Gradient(colors: [
@@ -137,7 +137,7 @@ struct TimerPickerView: View {
                         ForEach(TimerSettings.intervalOptions, id: \.self) { interval in
                             Text(interval == 0 ? "不提醒" : "\(interval)分钟")
                                 .tag(interval)
-                                .font(.system(size: 18, weight: .ultraLight, design: .monospaced))
+                                .font(.system(size: 18, weight: .bold, design: .monospaced))
                                 .foregroundStyle(
                                     LinearGradient(
                                         gradient: Gradient(colors: [

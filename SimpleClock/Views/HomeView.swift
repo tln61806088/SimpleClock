@@ -11,14 +11,29 @@ struct HomeView: View {
     let mainButtonSpacing: CGFloat = 16
     
     var body: some View {
-        NavigationView {
-            GeometryReader { geometry in
+        GeometryReader { geometry in
                 VStack(spacing: 0) {
                     // 上方固定内容区域 - 不滚动
                     VStack(spacing: 32) {
+                        // 自定义标题
+                        Text("极简语音计时")
+                            .font(.system(size: 20, weight: .ultraLight, design: .monospaced))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.1, green: 0.2, blue: 0.5),
+                                        Color.purple,
+                                        Color(red: 0.1, green: 0.2, blue: 0.5)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
+                            .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
+                        
                         // 时钟显示区域
                         clockDisplayArea
-                            .padding(.top, 8)
                     
                         // 优雅的分割线
                         HStack {
@@ -45,7 +60,7 @@ struct HomeView: View {
                             }
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 24)
+                    .padding(.top, 12)
                     
                     // 中间弹性空白区域
                     Spacer(minLength: 20)
@@ -57,10 +72,8 @@ struct HomeView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
-                }
-                .navigationTitle("极简语音计时")
-                .navigationBarTitleDisplayMode(.inline)
-                .background(
+            }
+            .background(
                     LinearGradient(
                         gradient: Gradient(colors: [
                             Color(.systemBackground),
@@ -72,9 +85,7 @@ struct HomeView: View {
                     )
                     .ignoresSafeArea()
                 )
-            }
         }
-        .navigationViewStyle(StackNavigationViewStyle())
         .onAppear {
             timerViewModel.updateSettings(timerSettings)
             // 添加进入动画
