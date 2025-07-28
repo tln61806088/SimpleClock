@@ -152,9 +152,20 @@ class SpeechRecognitionHelper: NSObject {
             self?.handleRecognitionResult(result: result, error: error)
         }
         
-        // 配置音频格式
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+        // 配置音频格式 - 使用兼容的格式避免闪退
+        let _ = inputNode.outputFormat(forBus: 0)  // 获取原始格式但不使用，避免warning
+        
+        // 创建兼容的音频格式
+        let compatibleFormat = AVAudioFormat(
+            standardFormatWithSampleRate: 16000.0,  // 16kHz采样率，语音识别的标准格式
+            channels: 1  // 单声道
+        )
+        
+        guard let format = compatibleFormat else {
+            throw NSError(domain: "SpeechRecognitionHelper", code: 2, userInfo: [NSLocalizedDescriptionKey: "无法创建兼容的音频格式"])
+        }
+        
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
             recognitionRequest.append(buffer)
         }
         

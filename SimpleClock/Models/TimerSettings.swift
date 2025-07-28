@@ -10,27 +10,28 @@ struct TimerSettings: Equatable {
     var interval: Int
     
     /// 默认设置
-    static let `default` = TimerSettings(duration: 90, interval: 5)
+    static let `default` = TimerSettings(duration: 60, interval: 5)
     
-    /// 可选的计时时长范围（1-180分钟）
-    static let durationRange = 1...180
+    /// 可选的计时时长范围（1-720分钟，即12小时）
+    static let durationRange = 1...720
     
     /// 可选的提醒间隔选项（分钟）
     static let intervalOptions = [0, 1, 5, 10, 15, 30, 60, 90]
     
     /// 初始化
     /// - Parameters:
-    ///   - duration: 计时时长（分钟），范围1-180
-    ///   - interval: 提醒间隔（分钟），必须在intervalOptions中
+    ///   - duration: 计时时长（分钟），范围1-720
+    ///   - interval: 提醒间隔（分钟），支持0-720的任意值
     init(duration: Int, interval: Int) {
-        self.duration = max(1, min(180, duration))
-        self.interval = TimerSettings.intervalOptions.contains(interval) ? interval : 5
+        self.duration = max(1, min(720, duration))
+        // 支持任意间隔时间，范围0-720分钟
+        self.interval = max(0, min(720, interval))
     }
     
     /// 验证设置是否有效
     var isValid: Bool {
         return TimerSettings.durationRange.contains(duration) && 
-               TimerSettings.intervalOptions.contains(interval)
+               interval >= 0 && interval <= 720
     }
     
     /// 计时时长的显示文本

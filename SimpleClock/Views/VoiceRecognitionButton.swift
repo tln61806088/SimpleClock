@@ -21,6 +21,7 @@ struct VoiceRecognitionButton: View {
     
     @ObservedObject var viewModel: TimerViewModel
     @State private var isRecording = false
+    @State private var isPreparingToRecord = false
     @State private var recordingAnimation = false
     @State private var recordingTimer: Timer?
     
@@ -30,7 +31,7 @@ struct VoiceRecognitionButton: View {
             ZStack {
                 // 背景长方形 - 固定高度，避免尺寸变化
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isRecording ? Color.gray.opacity(0.8) : Color.gray)
+                    .fill((isRecording || isPreparingToRecord) ? Color.gray.opacity(0.8) : Color.gray)
                     .frame(maxWidth: .infinity, minHeight: 180, maxHeight: 180)
                 
                 // 录音动画波纹 - 固定尺寸，避免影响布局
@@ -52,11 +53,11 @@ struct VoiceRecognitionButton: View {
                 
                 // 图标和文字
                 HStack(spacing: 16) {
-                    Image(systemName: isRecording ? "waveform" : "mic.fill")
+                    Image(systemName: isRecording ? "waveform" : (isPreparingToRecord ? "speaker.wave.2" : "mic.fill"))
                         .font(.system(size: 32, weight: .medium))
                         .foregroundColor(.white)
                     
-                    Text(isRecording ? "录音中" : "语音识别")
+                    Text(isRecording ? "录音中" : (isPreparingToRecord ? "请说话" : "语音识别"))
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
@@ -66,7 +67,7 @@ struct VoiceRecognitionButton: View {
                 handleTapGesture()
             }
             
-            Text(isRecording ? "录音中，点击结束" : "点击说话")
+            Text(isRecording ? "录音中，点击结束" : (isPreparingToRecord ? "正在播报提示..." : "点击说话"))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -81,42 +82,65 @@ struct VoiceRecognitionButton: View {
         if isRecording {
             // 正在录音，点击结束
             stopRecording()
+        } else if isPreparingToRecord {
+            // 正在准备阶段，点击取消
+            cancelRecording()
         } else {
             // 未在录音，点击开始
             startRecording()
         }
     }
     
+    /// 取消录音准备
+    private func cancelRecording() {
+        print("用户取消语音识别")
+        isPreparingToRecord = false
+        isRecording = false
+        recordingAnimation = false
+        
+        // 恢复后台音频
+        resumeBackgroundAudioIfNeeded()
+    }
+    
     /// 开始录音
     private func startRecording() {
-        guard !isRecording else { return }
+        guard !isRecording && !isPreparingToRecord else { return }
         
-        isRecording = true
-        recordingAnimation = true
+        // 设置准备状态
+        isPreparingToRecord = true
+        
+        // 立即震动反馈和语音提示
+        print("点击语音识别：立即震动和播报提示")
+        HapticHelper.shared.voiceRecognitionStartImpact()
         
         // 暂停后台音乐播放，避免干扰语音识别
-        print("暂停后台音乐，开始语音识别")
+        print("暂停后台音乐，准备语音识别")
         ContinuousAudioPlayer.shared.stopContinuousPlayback()
         
-        // 轻微震动反馈
-        print("触发开始录音震动")
-        HapticHelper.shared.voiceRecognitionImpact()
+        // 立即播报提示
+        SpeechHelper.shared.speak("请说出您的指令")
         
-        // 震动后稍微延迟再开始录音，确保用户感受到震动
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            // 开始语音识别
-            print("开始语音识别录音")
+        // 等待提示播报完成后再开始录音（约1.5秒）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+            guard self.isPreparingToRecord && !self.isRecording else { return } // 确保状态正确
+            
+            self.isPreparingToRecord = false
+            self.isRecording = true
+            self.recordingAnimation = true
+            
+            // 开始语音识别录音
+            print("提示播报完成，开始语音识别录音")
             SpeechRecognitionHelper.shared.startRecording { _ in
                 // 录音过程中不处理结果，等手动停止或超时后处理
             }
-        }
-        
-        // 启动5秒计时器，自动停止录音
-        recordingTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [self] _ in
-            print("5秒录音时间到，自动停止录音")
-            // 需要通过状态检查来避免重复调用
-            if isRecording {
-                stopRecording()
+            
+            // 启动5秒计时器，自动停止录音
+            self.recordingTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+                print("5秒录音时间到，自动停止录音")
+                // 需要通过状态检查来避免重复调用
+                if self.isRecording {
+                    self.stopRecording()
+                }
             }
         }
     }
@@ -129,12 +153,14 @@ struct VoiceRecognitionButton: View {
         recordingTimer?.invalidate()
         recordingTimer = nil
         
+        // 清理所有状态
         isRecording = false
+        isPreparingToRecord = false
         recordingAnimation = false
         
-        // 立即震动反馈
+        // 中等强度震动反馈 - 停止录音
         print("触发停止录音震动")
-        HapticHelper.shared.voiceRecognitionImpact()
+        HapticHelper.shared.voiceRecognitionEndImpact()
         
         // 延长0.5秒录音时间，确保捕获完整语音
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -148,6 +174,10 @@ struct VoiceRecognitionButton: View {
                    !recognizedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                    recognizedText != "未检测到语音" && recognizedText != "识别失败" {
                     print("✅ 语音识别成功: \(recognizedText)")
+                    
+                    // 识别成功震动反馈
+                    HapticHelper.shared.voiceRecognitionCompleteImpact()
+                    
                     // 清空识别结果，避免重复使用
                     SpeechRecognitionHelper.shared.clearLastRecognizedText()
                     self.handleVoiceRecognitionResult(recognizedText)
@@ -198,23 +228,30 @@ struct VoiceRecognitionButton: View {
     private func intelligentCommandRecognition(from text: String) -> VoiceCommand {
         let lowercaseText = text.lowercased().replacingOccurrences(of: " ", with: "")
         
-        // 优先检查SpeechRecognitionHelper已归一化的指令格式
-        if text.hasPrefix("计时") && text.contains("分钟间隔") && text.hasSuffix("分钟") {
-            // "计时X分钟间隔Y分钟" 格式
-            if let duration = extractDurationFromText(text), let interval = extractIntervalFromText(text) {
+        print("🔍 开始解析指令: \(text)")
+        
+        // 优先检查复合指令格式
+        if text.hasPrefix("计时") && hasIntervalKeyword(in: text) {
+            print("📝 识别为复合指令格式")
+            // "计时X小时Y分钟间隔Z分钟" 或 "计时X分钟每隔Y分钟" 或 "计时X分钟每Y分钟" 等复合格式
+            let duration = extractDurationFromText(text)
+            let interval = extractIntervalFromText(text)
+            print("⏱️ 提取结果 - 时长: \(duration?.description ?? "nil"), 间隔: \(interval?.description ?? "nil")")
+            
+            if let duration = duration, let interval = interval {
                 return .setTimerWithInterval(duration: duration, interval: interval)
             }
         }
         
-        if text.hasPrefix("计时") && text.hasSuffix("分钟") && !text.contains("间隔") {
-            // "计时X分钟" 格式
+        if text.hasPrefix("计时") && (text.contains("分钟") || text.contains("小时")) && !hasIntervalKeyword(in: text) {
+            // "计时X分钟" 或 "计时X小时" 或 "计时X小时Y分钟" 格式（不包含间隔关键词）
             if let duration = extractDurationFromText(text) {
                 return .setTimer(duration: duration)
             }
         }
         
-        if text.hasPrefix("间隔") && text.hasSuffix("分钟") {
-            // "间隔X分钟" 格式
+        if hasIntervalKeyword(in: text) && (text.contains("分钟") || text.contains("小时")) {
+            // "间隔X分钟" 或 "每隔X分钟" 或 "每X分钟" 或 "隔X分钟" 等格式
             if let interval = extractIntervalFromText(text) {
                 return .setInterval(interval: interval)
             }
@@ -257,24 +294,426 @@ struct VoiceRecognitionButton: View {
         return keywords.contains { text.contains($0) }
     }
     
+    /// 检查文本是否包含间隔关键词
+    private func hasIntervalKeyword(in text: String) -> Bool {
+        // 精确匹配间隔关键词，避免误判
+        return text.hasPrefix("间隔") || 
+               text.hasPrefix("每隔") || 
+               text.hasPrefix("每") || 
+               text.hasPrefix("隔") ||
+               text.contains("间隔") ||
+               text.contains("每隔") ||
+               (text.contains("每") && (text.contains("分钟") || text.contains("小时"))) ||
+               (text.contains("隔") && (text.contains("分钟") || text.contains("小时")))
+    }
+    
     /// 从文本中提取计时时长
     private func extractDurationFromText(_ text: String) -> Int? {
-        // 使用简单的数字提取逻辑
-        let numbers = extractNumbers(from: text)
+        var totalMinutes = 0
+        print("🕐 开始提取计时时长，文本: '\(text)'")
+        
+        // 先找到计时关键词的位置，只在计时部分查找时长
+        let timerKeywords = ["计时"]
+        var timerKeywordRange: Range<String.Index>?
+        
+        for keyword in timerKeywords {
+            if let range = text.range(of: keyword) {
+                timerKeywordRange = range
+                break
+            }
+        }
+        
+        // 确定计时部分的文本范围（从计时关键词到间隔关键词之前）
+        var timerText = text
+        if let timerRange = timerKeywordRange {
+            let startIndex = timerRange.upperBound
+            
+            // 找到间隔关键词的位置，限制搜索范围
+            let intervalKeywords = ["间隔", "每隔", "每", "隔"]
+            var intervalStart: String.Index?
+            
+            for intervalKeyword in intervalKeywords {
+                if let intervalRange = text.range(of: intervalKeyword, range: startIndex..<text.endIndex) {
+                    if intervalStart == nil || intervalRange.lowerBound < intervalStart! {
+                        intervalStart = intervalRange.lowerBound
+                    }
+                }
+            }
+            
+            // 提取计时部分的文本
+            if let intervalIndex = intervalStart {
+                timerText = String(text[startIndex..<intervalIndex])
+            } else {
+                timerText = String(text[startIndex...])
+            }
+            print("🎯 计时部分文本: '\(timerText)'")
+        }
+        
+        // 在计时部分提取时长
+        if timerText.contains("小时") && timerText.contains("分钟") {
+            print("📝 检测到小时+分钟复合格式")
+            // 提取计时部分的小时数
+            if let hours = extractHoursFromTimerText(timerText) {
+                totalMinutes += hours * 60
+                print("✅ 计时部分小时数: \(hours)")
+            }
+            // 提取计时部分的分钟数（小时后面的分钟）
+            if let minutes = extractMinutesAfterHoursInTimerText(timerText) {
+                totalMinutes += minutes
+                print("✅ 计时部分分钟数: \(minutes)")
+            }
+        }
+        else if timerText.contains("小时") {
+            print("📝 检测到纯小时格式")
+            if let hours = extractHoursFromTimerText(timerText) {
+                totalMinutes = hours * 60
+                print("✅ 计时部分小时数: \(hours)")
+            }
+        }
+        else if timerText.contains("分钟") {
+            print("📝 检测到纯分钟格式")
+            let numbers = extractNumbers(from: timerText)
+            for number in numbers {
+                if number >= 1 && number <= 720 {
+                    totalMinutes = number
+                    print("✅ 计时部分分钟数: \(number)")
+                    break
+                }
+            }
+        }
+        
+        print("⏱️ 计算总时长: \(totalMinutes)分钟")
+        
+        // 验证总时长是否在允许范围内
+        if TimerSettings.durationRange.contains(totalMinutes) {
+            return totalMinutes
+        }
+        
+        print("❌ 时长超出范围: \(totalMinutes)")
+        return nil
+    }
+    
+    /// 从计时部分文本中提取小时数
+    private func extractHoursFromTimerText(_ timerText: String) -> Int? {
+        let numbers = extractNumbers(from: timerText)
+        print("🔍 计时部分提取小时，文本: '\(timerText)'，数字: \(numbers)")
+        
+        // 查找"小时"前面的数字
         for number in numbers {
-            if TimerSettings.durationRange.contains(number) && text.contains("分钟") {
-                return number
+            if number >= 1 && number <= 12 { // 最多12小时
+                // 验证这个数字是否在"小时"之前
+                if let hourIndex = timerText.range(of: "小时"),
+                   let _ = findNumberStringBeforeIndexInText(in: timerText, beforeRange: hourIndex, targetNumber: number) {
+                    print("✅ 计时部分找到小时数: \(number)")
+                    return number
+                }
+            }
+        }
+        print("❌ 计时部分未找到有效小时数")
+        return nil
+    }
+    
+    /// 从计时部分文本中提取小时后面的分钟数
+    private func extractMinutesAfterHoursInTimerText(_ timerText: String) -> Int? {
+        let numbers = extractNumbers(from: timerText)
+        print("🔍 计时部分提取分钟，文本: '\(timerText)'，数字: \(numbers)")
+        
+        // 查找"分钟"前面的数字，但要在"小时"后面
+        if let hourIndex = timerText.range(of: "小时") {
+            let textAfterHour = String(timerText[hourIndex.upperBound...])
+            
+            for number in numbers {
+                if number >= 0 && number <= 59 { // 分钟数应该小于60
+                    if textAfterHour.contains("\(number)") && textAfterHour.contains("分钟") {
+                        print("✅ 计时部分找到分钟数: \(number)")
+                        return number
+                    }
+                    
+                    // 检查中文数字
+                    let chineseToArabic: [String: Int] = [
+                        "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+                        "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
+                        "十一": 11, "十二": 12, "十三": 13, "十四": 14, "十五": 15,
+                        "十六": 16, "十七": 17, "十八": 18, "十九": 19, "二十": 20,
+                        "二十一": 21, "二十二": 22, "二十三": 23, "二十四": 24, "二十五": 25,
+                        "二十六": 26, "二十七": 27, "二十八": 28, "二十九": 29, "三十": 30,
+                        "三十一": 31, "三十二": 32, "三十三": 33, "三十四": 34, "三十五": 35,
+                        "三十六": 36, "三十七": 37, "三十八": 38, "三十九": 39, "四十": 40,
+                        "四十一": 41, "四十二": 42, "四十三": 43, "四十四": 44, "四十五": 45,
+                        "四十六": 46, "四十七": 47, "四十八": 48, "四十九": 49, "五十": 50,
+                        "五十一": 51, "五十二": 52, "五十三": 53, "五十四": 54, "五十五": 55,
+                        "五十六": 56, "五十七": 57, "五十八": 58, "五十九": 59
+                    ]
+                    
+                    for (chinese, arabic) in chineseToArabic {
+                        if arabic == number && textAfterHour.contains(chinese) && textAfterHour.contains("分钟") {
+                            print("✅ 计时部分找到中文分钟数: \(chinese) = \(number)")
+                            return number
+                        }
+                    }
+                }
+            }
+        }
+        print("❌ 计时部分未找到有效分钟数")
+        return nil
+    }
+    
+    /// 在指定文本和位置前查找数字字符串
+    private func findNumberStringBeforeIndexInText(in text: String, beforeRange: Range<String.Index>, targetNumber: Int) -> String? {
+        let textBeforeIndex = String(text[..<beforeRange.lowerBound])
+        
+        // 检查阿拉伯数字
+        if textBeforeIndex.contains("\(targetNumber)") {
+            return "\(targetNumber)"
+        }
+        
+        // 检查中文数字
+        let chineseNumbers = ["一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+                             "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
+                             "十一": 11, "十二": 12]
+        
+        for (chinese, arabic) in chineseNumbers {
+            if arabic == targetNumber && textBeforeIndex.contains(chinese) {
+                return chinese
+            }
+        }
+        
+        return nil
+    }
+    
+    /// 从文本中提取小时数
+    private func extractHoursFromText(_ text: String) -> Int? {
+        let numbers = extractNumbers(from: text)
+        
+        // 查找"小时"前面的数字
+        for number in numbers {
+            if number >= 1 && number <= 12 { // 最多12小时
+                // 验证这个数字是否在"小时"之前
+                if let hourIndex = text.range(of: "小时"),
+                   let _ = findNumberStringBeforeIndex(in: text, beforeRange: hourIndex, targetNumber: number) {
+                    return number
+                }
             }
         }
         return nil
     }
     
+    /// 提取小时后面的分钟数
+    private func extractMinutesAfterHours(_ text: String) -> Int? {
+        let numbers = extractNumbers(from: text)
+        
+        // 查找"分钟"前面的数字，但要在"小时"后面
+        if let hourIndex = text.range(of: "小时") {
+            let textAfterHour = String(text[hourIndex.upperBound...])
+            
+            for number in numbers {
+                if number >= 1 && number <= 59 { // 分钟数应该小于60
+                    if textAfterHour.contains("\(number)") && textAfterHour.contains("分钟") {
+                        return number
+                    }
+                }
+            }
+        }
+        return nil
+    }
+    
+    /// 在指定位置前查找数字字符串
+    private func findNumberStringBeforeIndex(in text: String, beforeRange: Range<String.Index>, targetNumber: Int) -> String? {
+        let textBeforeIndex = String(text[..<beforeRange.lowerBound])
+        
+        // 检查阿拉伯数字
+        if textBeforeIndex.contains("\(targetNumber)") {
+            return "\(targetNumber)"
+        }
+        
+        // 检查中文数字
+        let chineseNumbers = ["一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+                             "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
+                             "十一": 11, "十二": 12]
+        
+        for (chinese, arabic) in chineseNumbers {
+            if arabic == targetNumber && textBeforeIndex.contains(chinese) {
+                return chinese
+            }
+        }
+        
+        return nil
+    }
+    
     /// 从文本中提取间隔时间
     private func extractIntervalFromText(_ text: String) -> Int? {
-        if text.contains("间隔") {
-            let numbers = extractNumbers(from: text)
+        // 检查是否包含任何间隔关键词
+        let intervalKeywords = ["间隔", "每隔", "每", "隔"]
+        let hasIntervalKeyword = intervalKeywords.contains { text.contains($0) }
+        
+        if hasIntervalKeyword {
+            var intervalMinutes = 0
+            
+            // 处理小时 + 分钟的复合格式（如"间隔一小时三十分钟"、"每隔一小时三十分钟"）
+            if text.contains("小时") && text.contains("分钟") {
+                // 提取间隔中的小时数
+                if let hours = extractIntervalHoursFromText(text) {
+                    intervalMinutes += hours * 60
+                }
+                // 提取间隔中的分钟数（小时后面的分钟）
+                if let minutes = extractIntervalMinutesAfterHours(text) {
+                    intervalMinutes += minutes
+                }
+            }
+            // 只有小时（如"间隔一小时"、"每一小时"、"隔一小时"）
+            else if text.contains("小时") {
+                if let hours = extractIntervalHoursFromText(text) {
+                    intervalMinutes = hours * 60
+                }
+            }
+            // 只有分钟（如"间隔三分钟"、"每隔三分钟"、"每三分钟"、"隔三分钟"）
+            else if text.contains("分钟") {
+                intervalMinutes = extractIntervalMinutesFromText(text) ?? 0
+            }
+            // 没有单位，默认按分钟处理
+            else {
+                intervalMinutes = extractIntervalMinutesFromText(text) ?? 0
+            }
+            
+            // 验证间隔时间是否合理（0-720分钟）
+            if intervalMinutes >= 0 && intervalMinutes <= 720 {
+                return intervalMinutes
+            }
+        }
+        return nil
+    }
+    
+    /// 从间隔文本中提取小时数
+    private func extractIntervalHoursFromText(_ text: String) -> Int? {
+        let numbers = extractNumbers(from: text)
+        let intervalKeywords = ["间隔", "每隔", "每", "隔"]
+        
+        print("🔍 extractIntervalHoursFromText 开始分析: '\(text)'")
+        
+        // 找到最早出现的间隔关键词
+        var earliestIntervalRange: Range<String.Index>?
+        for keyword in intervalKeywords {
+            if let range = text.range(of: keyword) {
+                if earliestIntervalRange == nil || range.lowerBound < earliestIntervalRange!.lowerBound {
+                    earliestIntervalRange = range
+                }
+            }
+        }
+        
+        // 在间隔关键词之后查找"小时"
+        if let intervalRange = earliestIntervalRange {
+            let searchText = String(text[intervalRange.upperBound...])
+            print("🔍 间隔关键词后的文本: '\(searchText)'")
+            
+            if let hourIndex = searchText.range(of: "小时") {
+                // 提取间隔关键词到小时之间的文本
+                let intervalToHourText = String(searchText[..<hourIndex.lowerBound])
+                print("🔍 间隔到小时之间的文本: '\(intervalToHourText)'")
+                
+                for number in numbers {
+                    if number >= 1 && number <= 12 {
+                        // 检查这个数字是否在间隔到小时的文本中
+                        if intervalToHourText.contains("\(number)") {
+                            print("✅ 找到间隔小时数: \(number)")
+                            return number
+                        }
+                        
+                        // 检查中文数字
+                        let chineseToArabic: [String: Int] = [
+                            "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+                            "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
+                            "十一": 11, "十二": 12
+                        ]
+                        
+                        for (chinese, arabic) in chineseToArabic {
+                            if arabic == number && intervalToHourText.contains(chinese) {
+                                print("✅ 找到中文间隔小时数: \(chinese) = \(number)")
+                                return number
+                            }
+                        }
+                    }
+                }
+            } else {
+                print("❌ 间隔关键词后未找到'小时'")
+            }
+        } else {
+            print("❌ 未找到间隔关键词")
+        }
+        
+        print("❌ 未找到有效的间隔小时数")
+        return nil
+    }
+    
+    /// 提取间隔中小时后面的分钟数
+    private func extractIntervalMinutesAfterHours(_ text: String) -> Int? {
+        let numbers = extractNumbers(from: text)
+        let intervalKeywords = ["间隔", "每隔", "每", "隔"]
+        
+        print("🔍 extractIntervalMinutesAfterHours 开始分析: '\(text)'")
+        
+        // 找到最早出现的间隔关键词
+        var earliestIntervalRange: Range<String.Index>?
+        for keyword in intervalKeywords {
+            if let range = text.range(of: keyword) {
+                if earliestIntervalRange == nil || range.lowerBound < earliestIntervalRange!.lowerBound {
+                    earliestIntervalRange = range
+                }
+            }
+        }
+        
+        // 在间隔关键词之后查找"小时"和"分钟"
+        if let intervalRange = earliestIntervalRange {
+            let searchText = String(text[intervalRange.upperBound...])
+            print("🔍 间隔关键词后的文本: '\(searchText)'")
+            
+            if let hourIndex = searchText.range(of: "小时"),
+               let minuteIndex = searchText.range(of: "分钟") {
+                // 确保分钟在小时之后
+                if hourIndex.upperBound <= minuteIndex.lowerBound {
+                    let minuteText = String(searchText[hourIndex.upperBound..<minuteIndex.lowerBound])
+                    print("🔍 小时到分钟之间的文本: '\(minuteText)'")
+                    
+                    for number in numbers {
+                        if number >= 1 && number <= 59 && minuteText.contains("\(number)") {
+                            print("✅ 找到间隔分钟数: \(number)")
+                            return number
+                        }
+                    }
+                } else {
+                    print("⚠️ 分钟关键词在小时之前，跳过")
+                }
+            } else {
+                print("❌ 间隔关键词后未找到完整的'小时'和'分钟'")
+            }
+        } else {
+            print("❌ 未找到间隔关键词")
+        }
+        
+        print("❌ 未找到有效的间隔分钟数")
+        return nil
+    }
+    
+    /// 从间隔文本中提取分钟数
+    private func extractIntervalMinutesFromText(_ text: String) -> Int? {
+        let numbers = extractNumbers(from: text)
+        let intervalKeywords = ["间隔", "每隔", "每", "隔"]
+        
+        // 找到最早出现的间隔关键词
+        var earliestIntervalIndex: String.Index?
+        for keyword in intervalKeywords {
+            if let range = text.range(of: keyword) {
+                if earliestIntervalIndex == nil || range.lowerBound < earliestIntervalIndex! {
+                    earliestIntervalIndex = range.upperBound
+                }
+            }
+        }
+        
+        // 在间隔关键词之后查找数字
+        if let intervalIndex = earliestIntervalIndex {
+            let intervalText = String(text[intervalIndex...])
+            
             for number in numbers {
-                if TimerSettings.intervalOptions.contains(number) {
+                if number >= 0 && number <= 720 && intervalText.contains("\(number)") {
                     return number
                 }
             }
@@ -307,12 +746,24 @@ struct VoiceRecognitionButton: View {
     /// 提取中文数字
     private func extractChineseNumbers(from text: String) -> [Int] {
         let chineseToArabic: [String: Int] = [
-            "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+            // 基础数字
+            "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
             "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
             "十一": 11, "十二": 12, "十三": 13, "十四": 14, "十五": 15,
             "十六": 16, "十七": 17, "十八": 18, "十九": 19, "二十": 20,
-            "三十": 30, "四十": 40, "五十": 50, "六十": 60,
-            "七十": 70, "八十": 80, "九十": 90, "一百": 100
+            "二十一": 21, "二十二": 22, "二十三": 23, "二十四": 24, "二十五": 25,
+            "二十六": 26, "二十七": 27, "二十八": 28, "二十九": 29, "三十": 30,
+            "三十一": 31, "三十二": 32, "三十三": 33, "三十四": 34, "三十五": 35,
+            "三十六": 36, "三十七": 37, "三十八": 38, "三十九": 39, "四十": 40,
+            "四十一": 41, "四十二": 42, "四十三": 43, "四十四": 44, "四十五": 45,
+            "四十六": 46, "四十七": 47, "四十八": 48, "四十九": 49, "五十": 50,
+            "五十一": 51, "五十二": 52, "五十三": 53, "五十四": 54, "五十五": 55,
+            "五十六": 56, "五十七": 57, "五十八": 58, "五十九": 59, "六十": 60,
+            "七十": 70, "八十": 80, "九十": 90, "一百": 100,
+            // 常用大数字
+            "一百二十": 120, "一百五十": 150, "一百八十": 180,
+            "二百": 200, "三百": 300, "四百": 400, "五百": 500,
+            "六百": 600, "七百": 700, "七百二十": 720
         ]
         
         var numbers: [Int] = []
@@ -398,14 +849,16 @@ struct VoiceRecognitionButton: View {
             newSettings.duration = duration
             viewModel.updateSettings(newSettings)
             viewModel.startTimer()
-            speakConfirmationOnly("开始计时\(duration)分钟")
+            let durationText = formatDurationText(duration)
+            speakConfirmationOnly("开始计时\(durationText)")
             
         case .setInterval(let interval):
             print("语音指令：设置提醒间隔为\(interval)分钟")
             var newSettings = viewModel.settings
             newSettings.interval = interval
             viewModel.updateSettings(newSettings)
-            speakConfirmationOnly("设置提醒间隔为\(interval)分钟")
+            let intervalText = formatDurationText(interval)
+            speakConfirmationOnly("设置提醒间隔为\(intervalText)")
             
         case .setTimerWithInterval(let duration, let interval):
             print("语音指令：设置计时\(duration)分钟，间隔\(interval)分钟并开始")
@@ -418,7 +871,9 @@ struct VoiceRecognitionButton: View {
             newSettings.interval = interval
             viewModel.updateSettings(newSettings)
             viewModel.startTimer()
-            speakConfirmationOnly("开始计时\(duration)分钟，间隔\(interval)分钟")
+            let durationText = formatDurationText(duration)
+            let intervalText = formatDurationText(interval)
+            speakConfirmationOnly("开始计时\(durationText)，间隔\(intervalText)")
             
         case .noSpeechDetected:
             speakConfirmationOnly("请点击按钮后再说话")
@@ -480,6 +935,22 @@ struct VoiceRecognitionButton: View {
             ContinuousAudioPlayer.shared.startContinuousPlayback()
         } else {
             print("计时器未运行，不恢复后台音乐")
+        }
+    }
+    
+    /// 格式化时长文本，支持小时和分钟的自然表达
+    private func formatDurationText(_ minutes: Int) -> String {
+        if minutes == 0 {
+            return "不提醒"
+        } else if minutes < 60 {
+            return "\(minutes)分钟"
+        } else if minutes % 60 == 0 {
+            let hours = minutes / 60
+            return "\(hours)小时"
+        } else {
+            let hours = minutes / 60
+            let remainingMinutes = minutes % 60
+            return "\(hours)小时\(remainingMinutes)分钟"
         }
     }
 }

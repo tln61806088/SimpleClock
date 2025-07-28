@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// 计时器设置选择器视图
-/// 左侧：计时时长选择器（1-180分钟）
+/// 左侧：计时时长选择器（1-720分钟，即12小时）
 /// 右侧：提醒间隔选择器（1,5,10,15,30,60,90分钟）
 struct TimerPickerView: View {
     
@@ -39,7 +39,7 @@ struct TimerPickerView: View {
                     handleDurationChange(newValue)
                 }
                 .accessibilityLabel("计时时长选择器")
-                .accessibilityHint("滑动选择计时时长，范围1到180分钟")
+                .accessibilityHint("滑动选择计时时长，范围1到720分钟")
             }
             
             // 右侧：提醒间隔选择器
