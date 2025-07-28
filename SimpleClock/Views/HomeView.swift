@@ -13,36 +13,38 @@ struct HomeView: View {
     var body: some View {
         NavigationView {
             GeometryReader { geometry in
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // 时钟显示区域
-                        clockDisplayArea
-                    
-                        Divider()
-                    
-                        // 计时设置区域
-                        TimerPickerView(settings: $timerSettings)
-                            .onChange(of: timerSettings) { newSettings in
-                                timerViewModel.updateSettings(newSettings)
-                            }
-                    
-                        Divider()
+                VStack(spacing: 0) {
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            // 时钟显示区域
+                            clockDisplayArea
                         
-                        // 已移除背景音乐控制，改用持续微弱音频维持后台
-                    
-                        // 底部按钮区
-                        VStack {
-                            Spacer(minLength: 0)
-                            MainControlButtonsView(viewModel: timerViewModel)
-                            Spacer(minLength: 16) // 与主控制按钮保持一致的间距
-                            VoiceRecognitionButton(viewModel: timerViewModel)
-                            Spacer(minLength: geometry.safeAreaInsets.bottom)
+                            Divider()
+                        
+                            // 计时设置区域
+                            TimerPickerView(settings: $timerSettings)
+                                .onChange(of: timerSettings) { newSettings in
+                                    timerViewModel.updateSettings(newSettings)
+                                }
+                        
+                            Divider()
+                            
+                            // 添加一些空间，让按钮区域在细线下方
+                            Spacer()
+                                .frame(height: 8)
                         }
-                        .frame(height: geometry.size.height * 0.5)
-                        .padding(.horizontal, 0)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 20)
+                        .padding(.bottom, calculateButtonAreaHeight(for: geometry) + 48) // 给按钮区域预留空间
+                    }
+                    
+                    // 底部按钮区 - 固定在底部，响应式高度
+                    VStack(spacing: 0) {
+                        MainControlButtonsView(viewModel: timerViewModel)
+                            .frame(height: calculateButtonAreaHeight(for: geometry), alignment: .top)
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 20)
+                    .padding(.bottom, geometry.safeAreaInsets.bottom + 16)
                 }
                 .navigationTitle("极简语音计时")
                 .navigationBarTitleDisplayMode(.inline)
@@ -53,6 +55,21 @@ struct HomeView: View {
         .onAppear {
             timerViewModel.updateSettings(timerSettings)
         }
+    }
+    
+    /// 计算按钮区域高度，根据设备尺寸自动适应
+    private func calculateButtonAreaHeight(for geometry: GeometryProxy) -> CGFloat {
+        let _ = geometry.size.height
+        
+        // 语音识别按钮高度固定为180
+        let voiceButtonHeight: CGFloat = 180
+        // 主控制按钮高度为语音识别按钮的1/2
+        let mainButtonHeight = voiceButtonHeight / 2
+        // 两行主控制按钮 + 一行语音识别按钮 + 间距
+        let totalHeight = (mainButtonHeight * 2) + voiceButtonHeight + (16 * 2) // 两个16px间距
+        
+        // 精确计算，不设置最小高度强制要求
+        return totalHeight
     }
     
     // 时钟显示区域

@@ -9,52 +9,70 @@ struct MainControlButtonsView: View {
     @ObservedObject var viewModel: TimerViewModel
     
     var body: some View {
-        VStack(spacing: 16) {
-            // 第一行按钮
-            HStack(spacing: 16) {
-                // 时间播报按钮
-                ControlButton(
-                    title: "时间播报",
-                    systemImage: "clock.fill",
-                    backgroundColor: .gray
-                ) {
-                    handleTimeAnnouncement()
+        GeometryReader { geometry in
+            VStack(alignment: .center, spacing: 16) {
+                // 第一行按钮
+                HStack(spacing: 16) {
+                    // 时间播报按钮
+                    ControlButton(
+                        title: "时间播报",
+                        systemImage: "clock.fill",
+                        backgroundColor: .gray,
+                        buttonHeight: calculateButtonHeight(for: geometry),
+                        isMainButton: true
+                    ) {
+                        handleTimeAnnouncement()
+                    }
+                    
+                    // 开始计时/暂停计时按钮
+                    ControlButton(
+                        title: viewModel.isRunning ? "暂停计时" : "开始计时",
+                        systemImage: viewModel.isRunning ? "pause.fill" : "play.fill",
+                        backgroundColor: .gray,
+                        buttonHeight: calculateButtonHeight(for: geometry),
+                        isMainButton: true
+                    ) {
+                        handleStartPauseTimer()
+                    }
                 }
                 
-                // 开始计时/暂停计时按钮
-                ControlButton(
-                    title: viewModel.isRunning ? "暂停计时" : "开始计时",
-                    systemImage: viewModel.isRunning ? "pause.fill" : "play.fill",
-                    backgroundColor: .gray
-                ) {
-                    handleStartPauseTimer()
-                }
-            }
-            
-            // 第二行按钮
-            HStack(spacing: 16) {
-                // 剩余时间按钮
-                ControlButton(
-                    title: "剩余时间",
-                    systemImage: "timer",
-                    backgroundColor: .gray
-                ) {
-                    handleRemainingTime()
+                // 第二行按钮
+                HStack(spacing: 16) {
+                    // 剩余时间按钮
+                    ControlButton(
+                        title: "剩余时间",
+                        systemImage: "timer",
+                        backgroundColor: .gray,
+                        buttonHeight: calculateButtonHeight(for: geometry),
+                        isMainButton: true
+                    ) {
+                        handleRemainingTime()
+                    }
+                    
+                    // 结束计时按钮
+                    ControlButton(
+                        title: "结束计时",
+                        systemImage: "stop.fill",
+                        backgroundColor: .gray,
+                        buttonHeight: calculateButtonHeight(for: geometry),
+                        isMainButton: true
+                    ) {
+                        handleEndTimer()
+                    }
                 }
                 
-                // 结束计时按钮
-                ControlButton(
-                    title: "结束计时",
-                    systemImage: "stop.fill",
-                    backgroundColor: .gray
-                ) {
-                    handleEndTimer()
-                }
+                // 第三行：语音识别按钮
+                VoiceRecognitionButton(viewModel: viewModel)
             }
-            
-            // 第三行：语音识别按钮占位
-            // 实际的VoiceRecognitionButton将在主界面中单独放置
+            .padding(.top, 16)
         }
+    }
+    
+    /// 根据设备尺寸计算按钮高度
+    /// 主控制按钮高度 = 语音识别按钮高度的1/2
+    private func calculateButtonHeight(for geometry: GeometryProxy) -> CGFloat {
+        let voiceButtonHeight: CGFloat = 180
+        return voiceButtonHeight / 2 // 90像素
     }
     
     // MARK: - 按钮操作处理
@@ -105,21 +123,44 @@ struct ControlButton: View {
     let title: String
     let systemImage: String
     let backgroundColor: Color
+    let buttonHeight: CGFloat
+    let isMainButton: Bool
     let action: () -> Void
+    
+    init(title: String, systemImage: String, backgroundColor: Color, action: @escaping () -> Void) {
+        // 向后兼容的初始化器（用于语音识别按钮等）
+        self.title = title
+        self.systemImage = systemImage
+        self.backgroundColor = backgroundColor
+        self.buttonHeight = 80
+        self.isMainButton = false
+        self.action = action
+    }
+    
+    init(title: String, systemImage: String, backgroundColor: Color, buttonHeight: CGFloat, isMainButton: Bool, action: @escaping () -> Void) {
+        // 新的初始化器，支持自定义高度
+        self.title = title
+        self.systemImage = systemImage
+        self.backgroundColor = backgroundColor
+        self.buttonHeight = buttonHeight
+        self.isMainButton = isMainButton
+        self.action = action
+    }
     
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 24, weight: .medium))
+                    .font(.system(size: isMainButton ? 32 : 24, weight: .medium))
                     .foregroundColor(.white)
                 
                 Text(title)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: isMainButton ? 18 : 14, weight: .medium))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
+                    .lineLimit(2)
             }
-            .frame(maxWidth: .infinity, minHeight: 80, maxHeight: 80)
+            .frame(maxWidth: .infinity, minHeight: buttonHeight, maxHeight: buttonHeight)
             .background(backgroundColor)
             .cornerRadius(12)
         }
