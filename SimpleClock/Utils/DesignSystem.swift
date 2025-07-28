@@ -15,7 +15,7 @@ class ThemeManager: ObservableObject {
            let theme = DesignSystem.ColorTheme(rawValue: savedTheme) {
             self.currentTheme = theme
         } else {
-            self.currentTheme = .navyPurple
+            self.currentTheme = .black
         }
     }
 }
