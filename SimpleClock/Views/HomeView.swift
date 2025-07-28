@@ -14,29 +14,24 @@ struct HomeView: View {
         NavigationView {
             GeometryReader { geometry in
                 VStack(spacing: 0) {
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            // 时钟显示区域
-                            clockDisplayArea
-                        
-                            Divider()
-                        
-                            // 计时设置区域
-                            TimerPickerView(settings: $timerSettings, isEnabled: !timerViewModel.isRunning)
-                                .onChange(of: timerSettings) { newSettings in
-                                    timerViewModel.updateSettings(newSettings)
-                                }
-                        
-                            Divider()
-                            
-                            // 添加一些空间，让按钮区域在细线下方
-                            Spacer()
-                                .frame(height: 8)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 20)
-                        .padding(.bottom, calculateButtonAreaHeight(for: geometry) + 48) // 给按钮区域预留空间
+                    // 上方固定内容区域 - 不滚动
+                    VStack(spacing: 24) {
+                        // 时钟显示区域
+                        clockDisplayArea
+                    
+                        Divider()
+                    
+                        // 计时设置区域
+                        TimerPickerView(settings: $timerSettings, isEnabled: !timerViewModel.isRunning)
+                            .onChange(of: timerSettings) { newSettings in
+                                timerViewModel.updateSettings(newSettings)
+                            }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 20)
+                    
+                    // 中间空白区域
+                    Spacer()
                     
                     // 底部按钮区 - 固定在底部，响应式高度
                     VStack(spacing: 0) {

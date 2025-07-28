@@ -120,8 +120,8 @@ struct VoiceRecognitionButton: View {
         // 立即播报提示
         SpeechHelper.shared.speak("请说出您的计时要求")
         
-        // 等待提示播报完成后再开始录音（约1.5秒）
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+        // 等待提示播报完成后再开始录音（约2秒）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             guard self.isPreparingToRecord && !self.isRecording else { return } // 确保状态正确
             
             self.isPreparingToRecord = false
