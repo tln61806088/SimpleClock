@@ -42,6 +42,9 @@ struct ColorThemeToggleButton: View {
 struct ColorThemeOverlay: View {
     @EnvironmentObject private var colorThemeState: ColorThemeState
     @ObservedObject private var themeManager = ThemeManager.shared
+    @ObservedObject private var purchaseManager = PurchaseManager.shared
+    @State private var showPurchaseAlert = false
+    @State private var selectedLockedTheme: DesignSystem.ColorTheme?
     
     var body: some View {
         if colorThemeState.isExpanded {
@@ -68,6 +71,20 @@ struct ColorThemeOverlay: View {
             }
             .transition(.opacity)
             .animation(.easeInOut(duration: 0.3), value: colorThemeState.isExpanded)
+            .alert("解锁主题", isPresented: $showPurchaseAlert) {
+                if let theme = selectedLockedTheme {
+                    Button("购买解锁") {
+                        handlePurchaseTheme(theme)
+                    }
+                    Button("取消", role: .cancel) {
+                        selectedLockedTheme = nil
+                    }
+                }
+            } message: {
+                if let theme = selectedLockedTheme {
+                    Text(getPurchaseMessage(for: theme))
+                }
+            }
         }
     }
     
@@ -88,8 +105,17 @@ struct ColorThemeOverlay: View {
                 
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 5), spacing: 4) {
                     ForEach(solidColorThemes, id: \.id) { theme in
-                        ColorThemeButton(theme: theme, isSelected: themeManager.currentTheme == theme) {
-                            selectTheme(theme)
+                        ColorThemeButton(
+                            theme: theme, 
+                            isSelected: themeManager.currentTheme == theme,
+                            isLocked: !purchaseManager.isThemeUnlocked(theme)
+                        ) {
+                            if purchaseManager.isThemeUnlocked(theme) {
+                                selectTheme(theme)
+                            } else {
+                                selectedLockedTheme = theme
+                                showPurchaseAlert = true
+                            }
                         }
                     }
                 }
@@ -103,8 +129,17 @@ struct ColorThemeOverlay: View {
                 
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 5), spacing: 4) {
                     ForEach(gradientColorThemes, id: \.id) { theme in
-                        ColorThemeButton(theme: theme, isSelected: themeManager.currentTheme == theme) {
-                            selectTheme(theme)
+                        ColorThemeButton(
+                            theme: theme, 
+                            isSelected: themeManager.currentTheme == theme,
+                            isLocked: !purchaseManager.isThemeUnlocked(theme)
+                        ) {
+                            if purchaseManager.isThemeUnlocked(theme) {
+                                selectTheme(theme)
+                            } else {
+                                selectedLockedTheme = theme
+                                showPurchaseAlert = true
+                            }
                         }
                     }
                 }
@@ -145,12 +180,43 @@ struct ColorThemeOverlay: View {
             }
         }
     }
+    
+    /// 处理主题购买
+    private func handlePurchaseTheme(_ theme: DesignSystem.ColorTheme) {
+        let productIdentifier: PurchaseManager.ProductIdentifier
+        
+        if theme.isGradient {
+            productIdentifier = .gradientColors
+        } else {
+            productIdentifier = .solidColors
+        }
+        
+        purchaseManager.purchase(productIdentifier) { success in
+            if success {
+                // 购买成功后自动选择该主题
+                self.selectTheme(theme)
+            }
+            self.selectedLockedTheme = nil
+        }
+    }
+    
+    /// 获取购买提示信息
+    private func getPurchaseMessage(for theme: DesignSystem.ColorTheme) -> String {
+        if theme.isGradient {
+            let price = purchaseManager.getPriceString(for: .gradientColors)
+            return "解锁\(theme.name)主题需要购买渐变主题包(\(price))，将解锁所有渐变色主题。"
+        } else {
+            let price = purchaseManager.getPriceString(for: .solidColors)
+            return "解锁\(theme.name)主题需要购买纯色主题包(\(price))，将解锁除黑色外的所有纯色主题。"
+        }
+    }
 }
 
 /// 单个颜色主题按钮
 struct ColorThemeButton: View {
     let theme: DesignSystem.ColorTheme
     let isSelected: Bool
+    let isLocked: Bool
     let action: () -> Void
     
     @State private var isPressed = false
@@ -158,7 +224,7 @@ struct ColorThemeButton: View {
     var body: some View {
         Button(action: action) {
             RoundedRectangle(cornerRadius: 8)
-                .fill(theme.primaryGradient)
+                .fill(isLocked ? LinearGradient(colors: [.gray.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing) : theme.primaryGradient)
                 .frame(width: 32, height: 32)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
@@ -168,11 +234,16 @@ struct ColorThemeButton: View {
                         )
                 )
                 .overlay(
-                    // 选中标记
+                    // 选中标记或锁定标记
                     Group {
                         if isSelected {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.white)
+                                .background(Circle().fill(Color.black.opacity(0.7)).frame(width: 16, height: 16))
+                        } else if isLocked {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.white)
                                 .background(Circle().fill(Color.black.opacity(0.7)).frame(width: 16, height: 16))
                         }
@@ -185,7 +256,7 @@ struct ColorThemeButton: View {
             isPressed = pressing
         }, perform: {})
         .accessibilityLabel(theme.name)
-        .accessibilityHint("选择\(theme.name)主题")
+        .accessibilityHint(isLocked ? "需要购买解锁\(theme.name)主题" : "选择\(theme.name)主题")
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
