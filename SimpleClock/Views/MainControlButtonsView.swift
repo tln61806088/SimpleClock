@@ -151,11 +151,11 @@ struct ControlButton: View {
         Button(action: action) {
             VStack(spacing: 8) {
                 Image(systemName: systemImage)
-                    .font(.system(size: isMainButton ? 32 : 24, weight: .medium))
+                    .font(.system(size: isMainButton ? 24 : 24, weight: .medium))
                     .foregroundColor(.white)
                 
                 Text(title)
-                    .font(.system(size: isMainButton ? 18 : 14, weight: .medium))
+                    .font(.system(size: isMainButton ? 16 : 14, weight: .medium))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)

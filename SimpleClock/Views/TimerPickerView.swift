@@ -6,6 +6,7 @@ import SwiftUI
 struct TimerPickerView: View {
     
     @Binding var settings: TimerSettings
+    let isEnabled: Bool  // 新增：控制选择器是否可用
     
     @State private var selectedDuration: Int
     @State private var selectedInterval: Int
@@ -13,8 +14,9 @@ struct TimerPickerView: View {
     @State private var lastSpokenInterval: Int = -1
     @State private var speakTimer: Timer?
     
-    init(settings: Binding<TimerSettings>) {
+    init(settings: Binding<TimerSettings>, isEnabled: Bool = true) {
         self._settings = settings
+        self.isEnabled = isEnabled
         self._selectedDuration = State(initialValue: settings.wrappedValue.duration)
         self._selectedInterval = State(initialValue: settings.wrappedValue.interval)
     }
@@ -31,12 +33,17 @@ struct TimerPickerView: View {
                     ForEach(Array(TimerSettings.durationRange), id: \.self) { duration in
                         Text("\(duration)分钟")
                             .tag(duration)
+                            .foregroundColor(isEnabled ? .primary : .secondary)
                     }
                 }
                 .pickerStyle(.wheel)
                 .frame(height: 120)
+                .disabled(!isEnabled)
+                .opacity(isEnabled ? 1.0 : 0.6)
                 .onChange(of: selectedDuration) { newValue in
-                    handleDurationChange(newValue)
+                    if isEnabled {
+                        handleDurationChange(newValue)
+                    }
                 }
                 .accessibilityLabel("计时时长选择器")
                 .accessibilityHint("滑动选择计时时长，范围1到720分钟")
@@ -52,12 +59,17 @@ struct TimerPickerView: View {
                     ForEach(TimerSettings.intervalOptions, id: \.self) { interval in
                         Text(interval == 0 ? "不提醒" : "\(interval)分钟")
                             .tag(interval)
+                            .foregroundColor(isEnabled ? .primary : .secondary)
                     }
                 }
                 .pickerStyle(.wheel)
                 .frame(height: 120)
+                .disabled(!isEnabled)
+                .opacity(isEnabled ? 1.0 : 0.6)
                 .onChange(of: selectedInterval) { newValue in
-                    handleIntervalChange(newValue)
+                    if isEnabled {
+                        handleIntervalChange(newValue)
+                    }
                 }
                 .accessibilityLabel("提醒间隔选择器")
                 .accessibilityHint("滑动选择提醒间隔")
