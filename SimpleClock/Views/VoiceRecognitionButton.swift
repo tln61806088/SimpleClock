@@ -27,52 +27,41 @@ struct VoiceRecognitionButton: View {
     
     var body: some View {
         VStack(spacing: 12) {
-            // 主按钮 - 美化设计
+            // 主按钮 - 简洁边框设计
             ZStack {
-                // 主背景渐变
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(
-                        LinearGradient(
-                            gradient: Gradient(colors: buttonGradientColors),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(maxWidth: .infinity, minHeight: 180, maxHeight: 180)
-                    .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 6)
-                
-                // 光泽效果overlay
+                // 边框
                 RoundedRectangle(cornerRadius: 24)
                     .stroke(
                         LinearGradient(
                             gradient: Gradient(colors: [
-                                .white.opacity(0.4),
-                                .clear,
-                                .black.opacity(0.1)
+                                Color(red: 0.1, green: 0.2, blue: 0.5),
+                                Color.purple,
+                                Color(red: 0.1, green: 0.2, blue: 0.5)
                             ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1
+                        lineWidth: 2
                     )
-                    .frame(maxWidth: .infinity, minHeight: 180, maxHeight: 180)
+                    .frame(maxWidth: .infinity, minHeight: 157.5, maxHeight: 157.5)
                 
-                // 录音动画波纹 - 美化效果
+                // 录音动画波纹 - 蓝青渐变效果
                 if isRecording {
                     ForEach(0..<4, id: \.self) { index in
                         RoundedRectangle(cornerRadius: 24)
                             .stroke(
                                 LinearGradient(
                                     gradient: Gradient(colors: [
-                                        .white.opacity(0.8),
-                                        .white.opacity(0.4)
+                                        Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.8),
+                                        Color.purple.opacity(0.6),
+                                        Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.4)
                                     ]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
                                 lineWidth: 3
                             )
-                            .frame(maxWidth: .infinity, minHeight: 180, maxHeight: 180)
+                            .frame(maxWidth: .infinity, minHeight: 157.5, maxHeight: 157.5)
                             .scaleEffect(recordingAnimation ? 1.3 : 1.0)
                             .opacity(recordingAnimation ? 0.0 : 0.9)
                             .animation(
@@ -88,45 +77,57 @@ struct VoiceRecognitionButton: View {
                 VStack(spacing: 12) {
                     // 语音图标
                     ZStack {
-                        // 图标背景圆形
+                        // 图标背景圆形边框
                         Circle()
-                            .fill(
+                            .stroke(
                                 LinearGradient(
                                     gradient: Gradient(colors: [
-                                        .white.opacity(0.2),
-                                        .white.opacity(0.1)
+                                        Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.4),
+                                        Color.purple.opacity(0.3),
+                                        Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.2)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                            .frame(width: 60, height: 60)
+                        
+                        Image(systemName: currentIcon)
+                            .font(.system(size: 28, weight: .ultraLight, design: .monospaced))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.1, green: 0.2, blue: 0.5),
+                                        Color.purple,
+                                        Color(red: 0.1, green: 0.2, blue: 0.5)
                                     ]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
                             )
-                            .frame(width: 60, height: 60)
-                        
-                        Image(systemName: currentIcon)
-                            .font(.system(size: 28, weight: .semibold))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [.white, .white.opacity(0.9)]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
+                            .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
                             .scaleEffect(isRecording ? 1.1 : 1.0)
                             .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isRecording)
                     }
                     
                     // 状态文字
                     Text(currentStateText)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 18, weight: .ultraLight, design: .monospaced))
                         .foregroundStyle(
                             LinearGradient(
-                                gradient: Gradient(colors: [.white, .white.opacity(0.9)]),
+                                gradient: Gradient(colors: [
+                                    Color(red: 0.1, green: 0.2, blue: 0.5),
+                                    Color.purple,
+                                    Color(red: 0.1, green: 0.2, blue: 0.5)
+                                ]),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
+                        .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
                         .multilineTextAlignment(.center)
                 }
             }

@@ -23,59 +23,60 @@ struct TimerPickerView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            // 标题区域
-            HStack {
-                Image(systemName: "timer")
-                    .foregroundStyle(
-                        LinearGradient(
-                            gradient: Gradient(colors: [.blue, .cyan]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .font(.title2)
-                
-                Text("计时设置")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                
-                Spacer()
-                
-                // 状态指示器
-                if !isEnabled {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(Color.orange)
-                            .frame(width: 6, height: 6)
-                        Text("运行中")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                            .fontWeight(.medium)
-                    }
-                }
-            }
-            
             // 选择器区域
             HStack(spacing: 32) {
                 // 左侧：计时时长选择器
                 VStack(alignment: .center, spacing: 12) {
                     HStack(spacing: 6) {
                         Image(systemName: "clock.fill")
-                            .foregroundColor(.blue)
-                            .font(.caption)
+                            .font(.system(size: 14, weight: .ultraLight, design: .monospaced))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.1, green: 0.2, blue: 0.5),
+                                        Color.purple,
+                                        Color(red: 0.1, green: 0.2, blue: 0.5)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
+                            .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
                         
                         Text("计时时长")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary)
+                            .font(.system(size: 16, weight: .ultraLight, design: .monospaced))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.1, green: 0.2, blue: 0.5),
+                                        Color.purple,
+                                        Color(red: 0.1, green: 0.2, blue: 0.5)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
+                            .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
                     }
                     
                     Picker("计时时长", selection: $selectedDuration) {
                         ForEach(Array(TimerSettings.durationRange), id: \.self) { duration in
                             Text("\(duration)分钟")
                                 .tag(duration)
-                                .foregroundColor(isEnabled ? .primary : .secondary)
+                                .font(.system(size: 18, weight: .ultraLight, design: .monospaced))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(red: 0.1, green: 0.2, blue: 0.5),
+                                            Color.purple,
+                                            Color(red: 0.1, green: 0.2, blue: 0.5)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
                         }
                     }
                     .pickerStyle(.wheel)
@@ -100,20 +101,54 @@ struct TimerPickerView: View {
                 VStack(alignment: .center, spacing: 12) {
                     HStack(spacing: 6) {
                         Image(systemName: "bell.fill")
-                            .foregroundColor(.orange)
-                            .font(.caption)
+                            .font(.system(size: 14, weight: .ultraLight, design: .monospaced))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.1, green: 0.2, blue: 0.5),
+                                        Color.purple,
+                                        Color(red: 0.1, green: 0.2, blue: 0.5)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
+                            .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
                         
                         Text("提醒间隔")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary)
+                            .font(.system(size: 16, weight: .ultraLight, design: .monospaced))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.1, green: 0.2, blue: 0.5),
+                                        Color.purple,
+                                        Color(red: 0.1, green: 0.2, blue: 0.5)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
+                            .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
                     }
                     
                     Picker("提醒间隔", selection: $selectedInterval) {
                         ForEach(TimerSettings.intervalOptions, id: \.self) { interval in
                             Text(interval == 0 ? "不提醒" : "\(interval)分钟")
                                 .tag(interval)
-                                .foregroundColor(isEnabled ? .primary : .secondary)
+                                .font(.system(size: 18, weight: .ultraLight, design: .monospaced))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(red: 0.1, green: 0.2, blue: 0.5),
+                                            Color.purple,
+                                            Color(red: 0.1, green: 0.2, blue: 0.5)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
                         }
                     }
                     .pickerStyle(.wheel)
@@ -135,21 +170,6 @@ struct TimerPickerView: View {
                 }
             }
         }
-        .padding(.all, 20)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(.systemGray6),
-                            Color(.systemGray6).opacity(0.8)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
-        )
         .onAppear {
             // 初始化时播报当前设置
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

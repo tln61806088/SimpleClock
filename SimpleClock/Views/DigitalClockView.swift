@@ -11,7 +11,7 @@ struct DigitalClockView: View {
     var body: some View {
         VStack(spacing: 16) {
             // 主要时钟显示
-            HStack(spacing: 4) {
+            HStack(spacing: 0) {
                 // 时
                 TimeDigitView(text: hourString, size: 72)
                 
@@ -19,6 +19,7 @@ struct DigitalClockView: View {
                 TimeDigitView(text: ":", size: 50)
                     .opacity(shouldShowColon ? 1.0 : 0.3)
                     .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: currentTime)
+                    .padding(.horizontal, 2)
                 
                 // 分
                 TimeDigitView(text: minuteString, size: 72)
@@ -27,42 +28,14 @@ struct DigitalClockView: View {
                 TimeDigitView(text: ":", size: 50)
                     .opacity(shouldShowColon ? 1.0 : 0.3)
                     .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: currentTime)
+                    .padding(.horizontal, 2)
                 
                 // 秒
                 TimeDigitView(text: secondString, size: 72)
             }
-            .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
-            
-            // 状态指示器
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(isInTimerMode ? Color.orange : Color.green)
-                    .frame(width: 8, height: 8)
-                    .scaleEffect(isInTimerMode ? 1.2 : 1.0)
-                    .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isInTimerMode)
-                
-                Text(isInTimerMode ? "计时模式" : "时钟模式")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fontWeight(.medium)
-            }
+            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.4), radius: 12, x: 0, y: 6)
+            .shadow(color: Color.purple.opacity(0.3), radius: 6, x: 0, y: 3)
         }
-        .padding(.vertical, 24)
-        .padding(.horizontal, 20)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(.systemBackground),
-                            Color(.systemBackground).opacity(0.95)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .shadow(color: .black.opacity(0.1), radius: 12, x: 0, y: 6)
-        )
         .onReceive(timer) { input in
             currentTime = input
         }
@@ -74,24 +47,34 @@ struct DigitalClockView: View {
     private var hourString: String {
         if let viewModel = timerViewModel, viewModel.isRunning || viewModel.remainingSeconds > 0 {
             // 显示倒计时时间
-            let hours = viewModel.remainingSeconds / 3600
-            return String(format: "%02d", hours)
+            let totalMinutes = viewModel.remainingSeconds / 60
+            let hours = totalMinutes / 60
+            let result = String(format: "%02d", hours)
+            print("🕐 hourString: 倒计时模式 - remainingSeconds=\(viewModel.remainingSeconds), hours=\(hours), result='\(result)'")
+            return result
         } else {
             // 显示当前时间
             let hour = Calendar.current.component(.hour, from: currentTime)
-            return String(format: "%02d", hour)
+            let result = String(format: "%02d", hour)
+            print("🕐 hourString: 时钟模式 - currentTime=\(currentTime), hour=\(hour), result='\(result)'")
+            return result
         }
     }
     
     private var minuteString: String {
         if let viewModel = timerViewModel, viewModel.isRunning || viewModel.remainingSeconds > 0 {
             // 显示倒计时时间
-            let minutes = (viewModel.remainingSeconds % 3600) / 60
-            return String(format: "%02d", minutes)
+            let totalMinutes = viewModel.remainingSeconds / 60
+            let minutes = totalMinutes % 60
+            let result = String(format: "%02d", minutes)
+            print("🕐 minuteString: 倒计时模式 - remainingSeconds=\(viewModel.remainingSeconds), minutes=\(minutes), result='\(result)'")
+            return result
         } else {
             // 显示当前时间
             let minute = Calendar.current.component(.minute, from: currentTime)
-            return String(format: "%02d", minute)
+            let result = String(format: "%02d", minute)
+            print("🕐 minuteString: 时钟模式 - currentTime=\(currentTime), minute=\(minute), result='\(result)'")
+            return result
         }
     }
     
@@ -135,19 +118,26 @@ struct TimeDigitView: View {
     
     var body: some View {
         Text(text)
-            .font(.system(size: size, weight: .light, design: .monospaced))
+            .font(.system(size: size, weight: .ultraLight, design: .monospaced))
             .foregroundColor(.clear)
             .overlay(
-                LinearGradient(
-                    gradient: Gradient(colors: [.blue, .purple]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .mask(
-                    Text(text)
-                        .font(.system(size: size, weight: .light, design: .monospaced))
-                )
+                Text(text)
+                    .font(.system(size: size, weight: .ultraLight, design: .monospaced))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color(red: 0.1, green: 0.2, blue: 0.5),
+                                Color.purple,
+                                Color(red: 0.1, green: 0.2, blue: 0.5)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
             )
+            .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 8, x: 0, y: 4)
+            .shadow(color: Color.purple.opacity(0.2), radius: 4, x: 0, y: 2)
+            .fixedSize()
     }
 }
 

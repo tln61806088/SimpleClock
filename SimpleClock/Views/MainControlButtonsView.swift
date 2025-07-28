@@ -41,7 +41,7 @@ struct MainControlButtonsView: View {
                     // 剩余时间按钮
                     ControlButton(
                         title: "剩余时间",
-                        systemImage: "timer",
+                        systemImage: "timer.circle.fill",
                         backgroundColor: .gray,
                         buttonHeight: calculateButtonHeight(for: geometry),
                         isMainButton: true
@@ -69,10 +69,10 @@ struct MainControlButtonsView: View {
     }
     
     /// 根据设备尺寸计算按钮高度
-    /// 主控制按钮高度 = 语音识别按钮高度的1/2
+    /// 主控制按钮高度 = 语音识别按钮高度的1/1.75
     private func calculateButtonHeight(for geometry: GeometryProxy) -> CGFloat {
-        let voiceButtonHeight: CGFloat = 180
-        return voiceButtonHeight / 2 // 90像素
+        let voiceButtonHeight: CGFloat = 157.5
+        return voiceButtonHeight / 1.75 // 90像素
     }
     
     // MARK: - 按钮操作处理
@@ -153,56 +153,53 @@ struct ControlButton: View {
         Button(action: action) {
             VStack(spacing: 10) {
                 Image(systemName: systemImage)
-                    .font(.system(size: isMainButton ? 24 : 24, weight: .semibold))
+                    .font(.system(size: isMainButton ? 24 : 24, weight: .ultraLight, design: .monospaced))
                     .foregroundStyle(
                         LinearGradient(
-                            gradient: Gradient(colors: [.white, .white.opacity(0.9)]),
+                            gradient: Gradient(colors: [
+                                Color(red: 0.1, green: 0.2, blue: 0.5),
+                                Color.purple,
+                                Color(red: 0.1, green: 0.2, blue: 0.5)
+                            ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
-                    .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                    .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
+                    .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
                 
                 Text(title)
-                    .font(.system(size: isMainButton ? 16 : 14, weight: .semibold))
+                    .font(.system(size: isMainButton ? 16 : 14, weight: .ultraLight, design: .monospaced))
                     .foregroundStyle(
                         LinearGradient(
-                            gradient: Gradient(colors: [.white, .white.opacity(0.9)]),
+                            gradient: Gradient(colors: [
+                                Color(red: 0.1, green: 0.2, blue: 0.5),
+                                Color.purple,
+                                Color(red: 0.1, green: 0.2, blue: 0.5)
+                            ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
-                    .shadow(color: .black.opacity(0.2), radius: 1, x: 0, y: 1)
+                    .shadow(color: Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.3), radius: 4, x: 0, y: 2)
+                    .shadow(color: Color.purple.opacity(0.2), radius: 2, x: 0, y: 1)
             }
             .frame(maxWidth: .infinity, minHeight: buttonHeight, maxHeight: buttonHeight)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(
+                    .stroke(
                         LinearGradient(
                             gradient: Gradient(colors: [
-                                getGradientColors().0,
-                                getGradientColors().1
+                                Color(red: 0.1, green: 0.2, blue: 0.5),
+                                Color.purple,
+                                Color(red: 0.1, green: 0.2, blue: 0.5)
                             ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
-                        )
-                    )
-                    .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        .white.opacity(0.3),
-                                        .clear
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
+                        ),
+                        lineWidth: 2
                     )
             )
             .scaleEffect(isPressed ? 0.95 : 1.0)
