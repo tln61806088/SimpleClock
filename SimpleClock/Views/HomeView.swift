@@ -44,7 +44,7 @@ struct HomeView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 20)
                 }
-                .navigationTitle("SimpleClock")
+                .navigationTitle("极简语音计时")
                 .navigationBarTitleDisplayMode(.inline)
                 .background(Color(.systemGroupedBackground))
             }
