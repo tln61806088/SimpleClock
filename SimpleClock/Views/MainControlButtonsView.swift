@@ -92,15 +92,7 @@ struct MainControlButtonsView: View {
             SpeechHelper.shared.speakTimerAction("暂停计时")
         } else {
             viewModel.startTimer()
-            
-            // 先播报"开始计时"
             SpeechHelper.shared.speakTimerAction("开始计时")
-            
-            // 等待"开始计时"播报完成 + 0.5秒停顿后，再播报剩余时间
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.1 + 0.5) {
-                let remainingMinutes = Int(ceil(Double(self.viewModel.remainingSeconds) / 60.0))
-                SpeechHelper.shared.speak("剩余时间\(remainingMinutes)分钟")
-            }
         }
     }
     
