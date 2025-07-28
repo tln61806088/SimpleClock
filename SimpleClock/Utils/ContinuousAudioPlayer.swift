@@ -20,7 +20,7 @@ class ContinuousAudioPlayer: NSObject {
     // 临时调整到正常音量，方便测试听到滴答声效果
     
     
-    //这到底是不是 调节 后台播放滴哒声的
+    //这是 调节 后台播放滴哒声的
     private let minimalVolume: Float = 0.005
     
     private override init() {
