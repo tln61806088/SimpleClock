@@ -121,7 +121,7 @@ struct ColorThemeOverlay: View {
     
     /// 纯色主题列表
     private var solidColorThemes: [DesignSystem.ColorTheme] {
-        [.red, .orange, .yellow, .green, .blue, .indigo, .purple, .pink, .brown, .gray, .black]
+        [.black, .orange, .red, .green, .blue, .indigo, .purple, .pink, .brown, .gray]
     }
     
     /// 渐变主题列表
