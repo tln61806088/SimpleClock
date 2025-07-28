@@ -13,63 +13,23 @@ struct DigitalClockView: View {
             // 主要时钟显示
             HStack(spacing: 4) {
                 // 时
-                Text(hourString)
-                    .font(.system(size: 72, weight: .light, design: .monospaced))
-                    .foregroundStyle(
-                        LinearGradient(
-                            gradient: Gradient(colors: [.blue, .purple]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                TimeDigitView(text: hourString, size: 72)
                 
                 // 冒号（带闪烁动画）
-                Text(":")
-                    .font(.system(size: 50, weight: .light, design: .monospaced))
-                    .foregroundStyle(
-                        LinearGradient(
-                            gradient: Gradient(colors: [.blue.opacity(0.8), .purple.opacity(0.8)]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                TimeDigitView(text: ":", size: 50)
                     .opacity(shouldShowColon ? 1.0 : 0.3)
                     .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: currentTime)
                 
                 // 分
-                Text(minuteString)
-                    .font(.system(size: 72, weight: .light, design: .monospaced))
-                    .foregroundStyle(
-                        LinearGradient(
-                            gradient: Gradient(colors: [.blue, .purple]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                TimeDigitView(text: minuteString, size: 72)
                 
                 // 冒号（带闪烁动画）
-                Text(":")
-                    .font(.system(size: 50, weight: .light, design: .monospaced))
-                    .foregroundStyle(
-                        LinearGradient(
-                            gradient: Gradient(colors: [.blue.opacity(0.8), .purple.opacity(0.8)]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                TimeDigitView(text: ":", size: 50)
                     .opacity(shouldShowColon ? 1.0 : 0.3)
                     .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: currentTime)
                 
                 // 秒
-                Text(secondString)
-                    .font(.system(size: 72, weight: .light, design: .monospaced))
-                    .foregroundStyle(
-                        LinearGradient(
-                            gradient: Gradient(colors: [.blue, .purple]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                TimeDigitView(text: secondString, size: 72)
             }
             .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
             
@@ -165,6 +125,29 @@ struct DigitalClockView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
         return "当前时间：" + formatter.string(from: currentTime)
+    }
+}
+
+/// 时间数字显示组件，避免重复调用字符串计算
+struct TimeDigitView: View {
+    let text: String
+    let size: CGFloat
+    
+    var body: some View {
+        Text(text)
+            .font(.system(size: size, weight: .light, design: .monospaced))
+            .foregroundColor(.clear)
+            .overlay(
+                LinearGradient(
+                    gradient: Gradient(colors: [.blue, .purple]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .mask(
+                    Text(text)
+                        .font(.system(size: size, weight: .light, design: .monospaced))
+                )
+            )
     }
 }
 
