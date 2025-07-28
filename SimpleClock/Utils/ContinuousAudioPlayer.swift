@@ -18,7 +18,10 @@ class ContinuousAudioPlayer: NSObject {
     private var isPlaying = false
     
     // 临时调整到正常音量，方便测试听到滴答声效果
-    private let minimalVolume: Float = 1.0
+    
+    
+    //这到底是不是 调节 后台播放滴哒声的
+    private let minimalVolume: Float = 0.005
     
     private override init() {
         super.init()
@@ -157,8 +160,8 @@ class ContinuousAudioPlayer: NSObject {
     
     /// 调整音量
     func setVolume(_ volume: Float) {
-        audioPlayer?.volume = minimalVolume
-        logger.info("调整持续音频音量至: \(self.minimalVolume)")
+        audioPlayer?.volume = volume
+        logger.info("调整持续音频音量至: \(volume)")
     }
     
     /// 检查是否正在播放
