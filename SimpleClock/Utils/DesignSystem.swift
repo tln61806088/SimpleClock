@@ -47,7 +47,7 @@ struct DesignSystem {
         case gray = "gray"
         case black = "black"
         
-        // 10种渐变主题
+        // 20种渐变主题 - 前10种
         case navyPurple = "navyPurple"
         case sunset = "sunset"
         case ocean = "ocean"
@@ -58,6 +58,18 @@ struct DesignSystem {
         case fire = "fire"
         case sky = "sky"
         case lavender = "lavender"
+        
+        // 新增10种深色渐变主题
+        case deepNight = "deepNight"          // 深夜：深蓝到黑色
+        case darkForest = "darkForest"        // 暗森林：深绿到黑色  
+        case charcoal = "charcoal"            // 炭灰：深灰到黑色
+        case deepOcean = "deepOcean"          // 深海：深蓝到深青色
+        case darkBerry = "darkBerry"          // 暗莓：深紫到深红
+        case shadowGreen = "shadowGreen"      // 阴影绿：墨绿到深绿
+        case darkRose = "darkRose"            // 暗玫瑰：深粉到深红
+        case midnight = "midnight"            // 午夜：深蓝到深紫
+        case darkAmber = "darkAmber"          // 暗琥珀：深橙到深棕
+        case steelGray = "steelGray"          // 钢灰：深蓝灰到深灰
         
         var id: String { rawValue }
         
@@ -85,6 +97,16 @@ struct DesignSystem {
             case .fire: return "火焰"
             case .sky: return "天空"
             case .lavender: return "薰衣草"
+            case .deepNight: return "深夜"
+            case .darkForest: return "暗森林"
+            case .charcoal: return "炭灰"
+            case .deepOcean: return "深海"
+            case .darkBerry: return "暗莓"
+            case .shadowGreen: return "阴影绿"
+            case .darkRose: return "暗玫瑰"
+            case .midnight: return "午夜"
+            case .darkAmber: return "暗琥珀"
+            case .steelGray: return "钢灰"
             }
         }
         
@@ -176,6 +198,68 @@ struct DesignSystem {
                     colors: [Color(red: 0.9, green: 0.8, blue: 1.0), .purple, Color(red: 0.9, green: 0.8, blue: 1.0)],
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 )
+                
+            // 新增深色渐变主题 - 多样化过渡方式
+            case .deepNight:
+                // 深→浅渐变（如日落模式）
+                return LinearGradient(
+                    colors: [Color(red: 0.0, green: 0.05, blue: 0.2), Color(red: 0.1, green: 0.3, blue: 0.6), Color(red: 0.3, green: 0.5, blue: 0.9)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            case .darkForest:
+                // 对称模式（如藏青紫）
+                return LinearGradient(
+                    colors: [Color(red: 0.0, green: 0.15, blue: 0.05), Color(red: 0.2, green: 0.7, blue: 0.3), Color(red: 0.0, green: 0.15, blue: 0.05)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            case .charcoal:
+                // 浅→深渐变（反向）
+                return LinearGradient(
+                    colors: [Color(red: 0.6, green: 0.6, blue: 0.6), Color(red: 0.3, green: 0.3, blue: 0.3), Color(red: 0.05, green: 0.05, blue: 0.05)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            case .deepOcean:
+                // 三层递进（如海洋模式）
+                return LinearGradient(
+                    colors: [Color(red: 0.0, green: 0.2, blue: 0.4), Color(red: 0.0, green: 0.4, blue: 0.7), Color(red: 0.0, green: 0.6, blue: 1.0)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            case .darkBerry:
+                // 深→浅→中等（不规则）
+                return LinearGradient(
+                    colors: [Color(red: 0.2, green: 0.0, blue: 0.1), Color(red: 0.8, green: 0.2, blue: 0.5), Color(red: 0.5, green: 0.1, blue: 0.3)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            case .shadowGreen:
+                // 中等→亮→深（反对称）
+                return LinearGradient(
+                    colors: [Color(red: 0.1, green: 0.4, blue: 0.2), Color(red: 0.3, green: 0.8, blue: 0.4), Color(red: 0.0, green: 0.2, blue: 0.1)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            case .darkRose:
+                // 浅→深渐变
+                return LinearGradient(
+                    colors: [Color(red: 0.9, green: 0.4, blue: 0.6), Color(red: 0.6, green: 0.2, blue: 0.4), Color(red: 0.3, green: 0.0, blue: 0.15)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            case .midnight:
+                // 对称模式但颜色更丰富
+                return LinearGradient(
+                    colors: [Color(red: 0.1, green: 0.0, blue: 0.3), Color(red: 0.3, green: 0.1, blue: 0.8), Color(red: 0.05, green: 0.0, blue: 0.2)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            case .darkAmber:
+                // 深→亮→中等（类似火焰模式）
+                return LinearGradient(
+                    colors: [Color(red: 0.2, green: 0.1, blue: 0.0), Color(red: 1.0, green: 0.6, blue: 0.1), Color(red: 0.6, green: 0.3, blue: 0.0)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            case .steelGray:
+                // 平缓递进
+                return LinearGradient(
+                    colors: [Color(red: 0.2, green: 0.25, blue: 0.3), Color(red: 0.4, green: 0.45, blue: 0.5), Color(red: 0.6, green: 0.65, blue: 0.7)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
             }
         }
         
@@ -203,6 +287,16 @@ struct DesignSystem {
             case .fire: return .red
             case .sky: return .cyan
             case .lavender: return Color(red: 0.9, green: 0.8, blue: 1.0)
+            case .deepNight: return Color(red: 0.3, green: 0.5, blue: 0.9)        // 最亮的蓝色
+            case .darkForest: return Color(red: 0.2, green: 0.7, blue: 0.3)      // 中间最亮的绿色
+            case .charcoal: return Color(red: 0.6, green: 0.6, blue: 0.6)        // 最亮的灰色
+            case .deepOcean: return Color(red: 0.0, green: 0.6, blue: 1.0)       // 最亮的海蓝
+            case .darkBerry: return Color(red: 0.8, green: 0.2, blue: 0.5)       // 中间最亮的紫红
+            case .shadowGreen: return Color(red: 0.3, green: 0.8, blue: 0.4)     // 中间最亮的翠绿
+            case .darkRose: return Color(red: 0.9, green: 0.4, blue: 0.6)        // 最亮的玫瑰色
+            case .midnight: return Color(red: 0.3, green: 0.1, blue: 0.8)        // 中间最亮的紫蓝
+            case .darkAmber: return Color(red: 1.0, green: 0.6, blue: 0.1)       // 中间最亮的金色
+            case .steelGray: return Color(red: 0.6, green: 0.65, blue: 0.7)      // 最亮的钢灰
             }
         }
         
@@ -230,6 +324,16 @@ struct DesignSystem {
             case .fire: return .orange
             case .sky: return .blue
             case .lavender: return .purple
+            case .deepNight: return Color(red: 0.0, green: 0.05, blue: 0.2)         // 最深的蓝黑
+            case .darkForest: return Color(red: 0.0, green: 0.15, blue: 0.05)       // 深绿黑色
+            case .charcoal: return Color(red: 0.05, green: 0.05, blue: 0.05)        // 最深的黑灰
+            case .deepOcean: return Color(red: 0.0, green: 0.2, blue: 0.4)          // 深海蓝
+            case .darkBerry: return Color(red: 0.2, green: 0.0, blue: 0.1)          // 深紫黑色
+            case .shadowGreen: return Color(red: 0.0, green: 0.2, blue: 0.1)        // 最深的绿黑
+            case .darkRose: return Color(red: 0.3, green: 0.0, blue: 0.15)          // 最深的玫瑰黑
+            case .midnight: return Color(red: 0.05, green: 0.0, blue: 0.2)          // 深紫黑色
+            case .darkAmber: return Color(red: 0.2, green: 0.1, blue: 0.0)          // 深棕黑色
+            case .steelGray: return Color(red: 0.2, green: 0.25, blue: 0.3)         // 深钢蓝色
             }
         }
     }

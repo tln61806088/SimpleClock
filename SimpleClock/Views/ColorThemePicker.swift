@@ -126,7 +126,8 @@ struct ColorThemeOverlay: View {
     
     /// 渐变主题列表
     private var gradientColorThemes: [DesignSystem.ColorTheme] {
-        [.navyPurple, .sunset, .ocean, .forest, .rose, .galaxy, .mint, .fire, .sky, .lavender]
+        [.navyPurple, .sunset, .ocean, .forest, .rose, .galaxy, .mint, .fire, .sky, .lavender,
+         .deepNight, .darkForest, .charcoal, .deepOcean, .darkBerry, .shadowGreen, .darkRose, .midnight, .darkAmber, .steelGray]
     }
     
     /// 选择主题
