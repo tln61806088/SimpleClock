@@ -155,8 +155,27 @@ class SpeechRecognitionHelper: NSObject {
             self?.handleRecognitionResult(result: result, error: error)
         }
         
-        // 配置音频格式 - 使用硬件原生格式避免格式不匹配崩溃
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        // 配置音频格式 - iPad兼容性处理
+        let hardwareFormat = inputNode.outputFormat(forBus: 0)
+        
+        // 验证硬件格式的有效性
+        guard hardwareFormat.sampleRate > 0 && hardwareFormat.channelCount > 0 else {
+            throw NSError(domain: "SpeechRecognitionHelper", code: 2, userInfo: [NSLocalizedDescriptionKey: "设备音频格式无效"])
+        }
+        
+        // 使用硬件原生格式，但确保参数有效
+        let recordingFormat: AVAudioFormat
+        if hardwareFormat.sampleRate >= 8000 && hardwareFormat.sampleRate <= 48000 && 
+           hardwareFormat.channelCount >= 1 && hardwareFormat.channelCount <= 2 {
+            // 硬件格式有效，直接使用
+            recordingFormat = hardwareFormat
+        } else {
+            // 硬件格式异常，使用安全的标准格式
+            guard let fallbackFormat = AVAudioFormat(standardFormatWithSampleRate: 16000, channels: 1) else {
+                throw NSError(domain: "SpeechRecognitionHelper", code: 3, userInfo: [NSLocalizedDescriptionKey: "无法创建备用音频格式"])
+            }
+            recordingFormat = fallbackFormat
+        }
         
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
             recognitionRequest.append(buffer)
