@@ -160,7 +160,9 @@ struct TimerPickerView: View {
         
         // 延迟语音播报（避免频繁播报）
         speakTimer?.invalidate()
-        speakTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { _ in
+        
+        // 使用DispatchQueue替代Timer，避免强引用问题
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             // 播报完整的计时设置信息
             let intervalText = selectedInterval == 0 ? "不提醒" : "\(selectedInterval)分钟"
             SpeechHelper.shared.speak("计时\(newDuration)分钟，间隔\(intervalText)")
@@ -178,7 +180,9 @@ struct TimerPickerView: View {
         
         // 延迟语音播报（避免频繁播报）
         speakTimer?.invalidate()
-        speakTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { _ in
+        
+        // 使用DispatchQueue替代Timer，避免强引用问题
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             // 播报完整的计时设置信息
             let intervalText = newInterval == 0 ? "不提醒" : "\(newInterval)分钟"
             SpeechHelper.shared.speak("计时\(selectedDuration)分钟，间隔\(intervalText)")

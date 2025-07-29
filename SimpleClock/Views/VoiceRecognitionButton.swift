@@ -112,7 +112,7 @@ struct VoiceRecognitionButton: View {
         // 等待提示播报完成后开始录音和动画（约2秒）
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             // 开始录音动画
-            self.isRecording = true
+            isRecording = true
             
             // 开始语音识别
             SpeechRecognitionHelper.shared.startRecording { _ in
@@ -120,8 +120,8 @@ struct VoiceRecognitionButton: View {
             }
             
             // 5秒后自动停止并处理结果
-            self.recordingTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
-                self.finishVoiceRecognition()
+            recordingTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+                finishVoiceRecognition()
             }
         }
     }
@@ -141,8 +141,8 @@ struct VoiceRecognitionButton: View {
         // 停止语音识别
         SpeechRecognitionHelper.shared.stopRecording()
         
-        // 处理识别结果
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        // 使用更短的延迟，避免长时间阻塞主线程
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             if let recognizedText = SpeechRecognitionHelper.shared.getLastRecognizedText(), 
                !recognizedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                recognizedText != "未检测到语音" && recognizedText != "识别失败" {
@@ -152,19 +152,17 @@ struct VoiceRecognitionButton: View {
                 
                 // 清空识别结果，避免重复使用
                 SpeechRecognitionHelper.shared.clearLastRecognizedText()
-                self.handleVoiceRecognitionResult(recognizedText)
+                handleVoiceRecognitionResult(recognizedText)
             } else {
                 // 清空无效结果
                 SpeechRecognitionHelper.shared.clearLastRecognizedText()
-                self.handleVoiceRecognitionResult("未检测到语音")
+                handleVoiceRecognitionResult("未检测到语音")
             }
         }
     }
     
     /// 处理语音识别结果 - 使用苹果框架进行智能指令识别
     private func handleVoiceRecognitionResult(_ result: String) {
-        
-        
         // 使用苹果的Natural Language框架进行指令识别
         let command = intelligentCommandRecognition(from: result)
         
@@ -185,7 +183,7 @@ struct VoiceRecognitionButton: View {
             // 等待播报完成后再执行相应操作
             let recognitionSpeechDuration = Double(recognitionMessage.count) * 0.2 + 1.0
             DispatchQueue.main.asyncAfter(deadline: .now() + recognitionSpeechDuration) {
-                self.executeCommand(command, originalText: result)
+                executeCommand(command, originalText: result)
             }
         }
     }
@@ -741,7 +739,7 @@ struct VoiceRecognitionButton: View {
             SpeechHelper.shared.speakCurrentTime()
             // 播报完成后恢复后台音频
             DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                self.resumeBackgroundAudioIfNeeded()
+                resumeBackgroundAudioIfNeeded()
             }
             
         case .speakRemainingTime:
@@ -753,7 +751,7 @@ struct VoiceRecognitionButton: View {
                 speakConfirmationOnly("")
                 SpeechHelper.shared.speakRemainingTime(remainingSeconds: viewModel.remainingSeconds)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                    self.resumeBackgroundAudioIfNeeded()
+                    resumeBackgroundAudioIfNeeded()
                 }
             }
             
@@ -822,7 +820,7 @@ struct VoiceRecognitionButton: View {
             }
             
             DispatchQueue.main.asyncAfter(deadline: .now() + estimatedSpeechDuration) {
-                self.resumeBackgroundAudioIfNeeded()
+                resumeBackgroundAudioIfNeeded()
             }
         } else {
             // 没有播报内容，立即恢复后台音频
@@ -844,7 +842,7 @@ struct VoiceRecognitionButton: View {
                         ContinuousAudioPlayer.shared.startContinuousPlayback()
                     }
                 } else {
-                    self.resumeBackgroundAudioIfNeeded()
+                    resumeBackgroundAudioIfNeeded()
                 }
             }
         } else {

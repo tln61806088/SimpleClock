@@ -370,24 +370,26 @@ class TimerViewModel: ObservableObject {
         let totalDuration = TimeInterval(settings.duration * 60)
         let endTime = startTime.addingTimeInterval(totalDuration)
         
-        // 间隔提醒通知
+        // 间隔提醒通知 - 修复：当间隔为0时（不提醒），跳过间隔提醒逻辑
         let intervalMinutes = settings.interval
-        var nextReminderTime = startTime.addingTimeInterval(TimeInterval(intervalMinutes * 60))
-        
-        while nextReminderTime < endTime {
-            let remainingTime = endTime.timeIntervalSince(nextReminderTime)
-            let remainingMinutes = Int(remainingTime / 60)
+        if intervalMinutes > 0 {
+            var nextReminderTime = startTime.addingTimeInterval(TimeInterval(intervalMinutes * 60))
             
-            if remainingMinutes > 2 {
-                scheduleNotification(
-                    at: nextReminderTime,
-                    title: "计时提醒",
-                    body: "剩余时间\(remainingMinutes)分钟",
-                    identifier: "reminder_\(remainingMinutes)"
-                )
+            while nextReminderTime < endTime {
+                let remainingTime = endTime.timeIntervalSince(nextReminderTime)
+                let remainingMinutes = Int(remainingTime / 60)
+                
+                if remainingMinutes > 2 {
+                    scheduleNotification(
+                        at: nextReminderTime,
+                        title: "计时提醒",
+                        body: "剩余时间\(remainingMinutes)分钟",
+                        identifier: "reminder_\(remainingMinutes)"
+                    )
+                }
+                
+                nextReminderTime = nextReminderTime.addingTimeInterval(TimeInterval(intervalMinutes * 60))
             }
-            
-            nextReminderTime = nextReminderTime.addingTimeInterval(TimeInterval(intervalMinutes * 60))
         }
         
         // 最后2分钟每分钟提醒
