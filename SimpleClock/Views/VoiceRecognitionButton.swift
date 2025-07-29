@@ -20,7 +20,7 @@ enum VoiceCommand: Equatable {
 struct VoiceRecognitionButton: View {
     
     @ObservedObject private var themeManager = ThemeManager.shared
-    @ObservedObject var viewModel: TimerViewModel
+    var viewModel: TimerViewModel  // 改为普通引用，避免每秒重绘
     @State private var recordingTimer: Timer?
     @State private var isRecording = false
     

@@ -92,8 +92,10 @@ class SpeechHelper: NSObject, @unchecked Sendable {
     
     // 已移除后台任务管理函数，由PermissionManager统一处理
     
-    /// 检测设备是否处于静音状态（使用动态检测器）
+    /// 检测设备是否处于静音状态（按需检测）
     private func isSilentModeEnabled() -> Bool {
+        // 在真正需要播报时才检测静音状态，避免持续后台检测
+        SilentModeDetector.shared.checkSilentModeNow()
         return SilentModeDetector.shared.isSilentMode
     }
     

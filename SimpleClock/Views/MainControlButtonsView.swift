@@ -9,6 +9,10 @@ struct MainControlButtonsView: View {
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject var viewModel: TimerViewModel
     
+    // 性能优化：缓存按钮状态，避免每秒重绘
+    @State private var cachedButtonTitle = "开始计时"
+    @State private var cachedButtonIcon = "play.fill"
+    
     var body: some View {
         GeometryReader { geometry in
             VStack(alignment: .center, spacing: DesignSystem.Spacing.buttonSpacing) {
@@ -25,10 +29,10 @@ struct MainControlButtonsView: View {
                         handleTimeAnnouncement()
                     }
                     
-                    // 开始计时/暂停计时按钮
+                    // 开始计时/暂停计时按钮（使用缓存状态）
                     ControlButton(
-                        title: viewModel.isRunning ? "暂停计时" : (viewModel.isPaused ? "恢复计时" : "开始计时"),
-                        systemImage: viewModel.isRunning ? "pause.fill" : (viewModel.isPaused ? "play.fill" : "play.fill"),
+                        title: cachedButtonTitle,
+                        systemImage: cachedButtonIcon,
                         backgroundColor: .gray,
                         buttonHeight: calculateButtonHeight(for: geometry),
                         isMainButton: true
@@ -66,6 +70,18 @@ struct MainControlButtonsView: View {
                 VoiceRecognitionButton(viewModel: viewModel)
             }
             .padding(.top, DesignSystem.Spacing.buttonSpacing)
+            .onAppear {
+                // 初始化按钮状态
+                updateButtonState()
+            }
+            .onChange(of: viewModel.isRunning) { _ in
+                // 只在计时器运行状态变化时更新按钮
+                updateButtonState()
+            }
+            .onChange(of: viewModel.isPaused) { _ in
+                // 只在计时器暂停状态变化时更新按钮
+                updateButtonState()
+            }
         }
     }
     
@@ -73,6 +89,31 @@ struct MainControlButtonsView: View {
     /// 主控制按钮高度 = 语音识别按钮高度的1/1.75
     private func calculateButtonHeight(for geometry: GeometryProxy) -> CGFloat {
         return DesignSystem.Sizes.mainButtonHeight
+    }
+    
+    /// 更新按钮状态（只在必要时触发UI更新）
+    private func updateButtonState() {
+        let newTitle: String
+        let newIcon: String
+        
+        if viewModel.isRunning {
+            newTitle = "暂停计时"
+            newIcon = "pause.fill"
+        } else if viewModel.isPaused {
+            newTitle = "恢复计时"
+            newIcon = "play.fill"
+        } else {
+            newTitle = "开始计时"
+            newIcon = "play.fill"
+        }
+        
+        // 只有状态真正变化时才更新@State，触发UI重绘
+        if cachedButtonTitle != newTitle {
+            cachedButtonTitle = newTitle
+        }
+        if cachedButtonIcon != newIcon {
+            cachedButtonIcon = newIcon
+        }
     }
     
     // MARK: - 按钮操作处理

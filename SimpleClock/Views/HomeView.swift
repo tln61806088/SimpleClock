@@ -12,6 +12,14 @@ struct HomeView: View {
     // 性能优化：缓存TimerPicker的启用状态，避免每秒重绘
     @State private var isTimerPickerEnabled = true
     
+    // 性能优化：缓存渐变对象，避免每次重绘都重新创建
+    @State private var cachedPrimaryGradient: LinearGradient = DesignSystem.currentTheme.primaryGradient
+    @State private var cachedBackgroundGradient: LinearGradient = DesignSystem.Colors.backgroundGradient
+    
+    // 性能优化：缓存阴影配置，避免每次重绘都重新计算
+    @State private var cachedPrimaryShadow = DesignSystem.Shadows.primaryShadow
+    @State private var cachedSecondaryShadow = DesignSystem.Shadows.secondaryShadow
+    
     let mainButtonHeight: CGFloat = 80
     let mainButtonSpacing: CGFloat = 16
     
@@ -30,18 +38,18 @@ struct HomeView: View {
                             
                             Spacer()
                             
-                            // 中央标题
+                            // 中央标题（使用缓存渐变）
                             Text("极简语音计时")
                                 .font(DesignSystem.Fonts.title(size: DesignSystem.Sizes.titleText))
-                                .foregroundStyle(themeManager.currentTheme.primaryGradient)
-                                .shadow(color: DesignSystem.Shadows.primaryShadow.color,
-                                       radius: DesignSystem.Shadows.primaryShadow.radius,
-                                       x: DesignSystem.Shadows.primaryShadow.x,
-                                       y: DesignSystem.Shadows.primaryShadow.y)
-                                .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
-                                       radius: DesignSystem.Shadows.secondaryShadow.radius,
-                                       x: DesignSystem.Shadows.secondaryShadow.x,
-                                       y: DesignSystem.Shadows.secondaryShadow.y)
+                                .foregroundStyle(cachedPrimaryGradient)
+                                .shadow(color: cachedPrimaryShadow.color,
+                                       radius: cachedPrimaryShadow.radius,
+                                       x: cachedPrimaryShadow.x,
+                                       y: cachedPrimaryShadow.y)
+                                .shadow(color: cachedSecondaryShadow.color,
+                                       radius: cachedSecondaryShadow.radius,
+                                       x: cachedSecondaryShadow.x,
+                                       y: cachedSecondaryShadow.y)
                             
                             Spacer()
                             
@@ -80,7 +88,7 @@ struct HomeView: View {
                     .padding(.horizontal, DesignSystem.Spacing.medium + 4)
                     .padding(.bottom, geometry.safeAreaInsets.bottom + DesignSystem.Spacing.medium + 4)
                 }
-                .background(DesignSystem.Colors.backgroundGradient.ignoresSafeArea())
+                .background(cachedBackgroundGradient.ignoresSafeArea())
                 
                 // 临时隐藏颜色选择面板 - 免费版本暂时不提供主题选择
                 // ColorThemeOverlay()
@@ -103,6 +111,13 @@ struct HomeView: View {
             if isTimerPickerEnabled != newEnabled {
                 isTimerPickerEnabled = newEnabled
             }
+        }
+        .onChange(of: themeManager.currentTheme) { newTheme in
+            // 只在主题真正变化时更新缓存的渐变和阴影对象
+            cachedPrimaryGradient = newTheme.primaryGradient
+            cachedBackgroundGradient = DesignSystem.Colors.backgroundGradient
+            cachedPrimaryShadow = DesignSystem.Shadows.primaryShadow
+            cachedSecondaryShadow = DesignSystem.Shadows.secondaryShadow
         }
     }
     

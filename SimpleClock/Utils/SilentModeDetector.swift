@@ -34,8 +34,8 @@ class SilentModeDetector: ObservableObject {
         // 初始检测
         detectSilentModeSimple()
         
-        // 启动低频率定时检测
-        startPeriodicDetection()
+        // 不再启动定时检测，改为按需检测
+        // startPeriodicDetection()
         
         // 监听重要的音频事件
         setupNotifications()
