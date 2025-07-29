@@ -138,8 +138,16 @@ struct TimerPickerView: View {
         .onAppear {
             // 初始化时播报当前设置
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                // 语音播报内容："计时[X]分钟，[间隔文本]" (第141行)
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 SpeechHelper.shared.speakTimerSettings(duration: selectedDuration, interval: selectedInterval)
             }
+        }
+        .onChange(of: settings) { newSettings in
+            // 当settings发生变化时，同步更新滚轮显示
+            selectedDuration = newSettings.duration
+            selectedInterval = newSettings.interval
         }
         .onDisappear {
             // 清理定时器
@@ -165,6 +173,9 @@ struct TimerPickerView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             // 播报完整的计时设置信息
             let intervalText = selectedInterval == 0 ? "不提醒" : "\(selectedInterval)分钟"
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："计时[X]分钟，间隔[间隔文本]" (第168行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak("计时\(newDuration)分钟，间隔\(intervalText)")
             lastSpokenDuration = newDuration
         }
@@ -185,6 +196,9 @@ struct TimerPickerView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             // 播报完整的计时设置信息
             let intervalText = newInterval == 0 ? "不提醒" : "\(newInterval)分钟"
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："计时[X]分钟，间隔[间隔文本]" (第188行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak("计时\(selectedDuration)分钟，间隔\(intervalText)")
             lastSpokenInterval = newInterval
         }

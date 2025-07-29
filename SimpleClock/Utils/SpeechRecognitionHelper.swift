@@ -256,7 +256,8 @@ class SpeechRecognitionHelper: NSObject {
         // 计时设置指令 - 优先检查复合指令
         if let duration = extractDuration(from: text), let interval = extractInterval(from: text) {
             let durationText = formatDuration(duration)
-            return "计时\(durationText)间隔\(interval)分钟"
+            let intervalText = formatDuration(interval)
+            return "计时\(durationText)，间隔\(intervalText)"
         }
         
         // 单独的计时设置指令
@@ -267,7 +268,8 @@ class SpeechRecognitionHelper: NSObject {
         
         // 单独的间隔设置指令
         if let interval = extractInterval(from: text) {
-            return "间隔\(interval)分钟"
+            let intervalText = formatDuration(interval)
+            return "间隔\(intervalText)"
         }
         
         // 返回原始识别文本，而不是"未识别的指令："前缀
@@ -276,18 +278,23 @@ class SpeechRecognitionHelper: NSObject {
     
     /// 从文本中提取计时时长
     private func extractDuration(from text: String) -> Int? {
+        // 先检查半小时特殊表达
+        if let halfHourMinutes = extractDurationHalfHourExpressions(from: text) {
+            return halfHourMinutes
+        }
+        
         // 匹配"计时xx小时"、"计时xx分钟"或"xx分钟计时"等模式
         let patterns = [
             // 小时模式，转换为分钟
             "计时(\\d+)小时",
-            "计时([一二三四五六七八九十百]+)小时",
+            "计时([一二两三四五六七八九十百]+)小时",
             "(\\d+)小时计时",
-            "([一二三四五六七八九十百]+)小时计时",
+            "([一二两三四五六七八九十百]+)小时计时",
             // 分钟模式
             "计时(\\d+)分钟",
-            "计时([一二三四五六七八九十百]+)分钟",
+            "计时([一二两三四五六七八九十百]+)分钟",
             "(\\d+)分钟计时",
-            "([一二三四五六七八九十百]+)分钟计时"
+            "([一二两三四五六七八九十百]+)分钟计时"
         ]
         
         for (index, pattern) in patterns.enumerated() {
@@ -306,19 +313,37 @@ class SpeechRecognitionHelper: NSObject {
     
     /// 从文本中提取间隔时间
     private func extractInterval(from text: String) -> Int? {
+        // 先检查半小时特殊表达
+        if let halfHourMinutes = extractIntervalHalfHourExpressions(from: text) {
+            return halfHourMinutes
+        }
+        
         // 匹配"间隔xx分钟"、"每xx分钟"、"每隔xx分钟"等模式
         let patterns = [
+            // 小时模式，转换为分钟
+            "间隔(\\d+)小时",
+            "间隔([一二两三四五六七八九十百]+)小时",
+            "每隔(\\d+)小时",
+            "每隔([一二两三四五六七八九十百]+)小时",
+            "每(\\d+)小时",
+            "每([一二两三四五六七八九十百]+)小时",
+            // 分钟模式
             "间隔(\\d+)分钟",
-            "间隔([一二三四五六七八九十百]+)分钟",
+            "间隔([一二两三四五六七八九十百]+)分钟",
             "每隔(\\d+)分钟",
-            "每隔([一二三四五六七八九十百]+)分钟",
+            "每隔([一二两三四五六七八九十百]+)分钟",
             "每(\\d+)分钟",
-            "每([一二三四五六七八九十百]+)分钟"
+            "每([一二两三四五六七八九十百]+)分钟"
         ]
         
-        for pattern in patterns {
+        for (index, pattern) in patterns.enumerated() {
             if let match = extractNumber(from: text, pattern: pattern) {
-                return match
+                // 前6个是小时模式，需要转换为分钟
+                if index < 6 {
+                    return match * 60
+                } else {
+                    return match
+                }
             }
         }
         
@@ -362,7 +387,7 @@ class SpeechRecognitionHelper: NSObject {
     /// 转换中文数字为阿拉伯数字
     private func convertChineseNumber(_ chineseNumber: String) -> Int? {
         let chineseToArabic: [String: Int] = [
-            "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+            "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
             "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
             "二十": 20, "三十": 30, "四十": 40, "五十": 50,
             "六十": 60, "七十": 70, "八十": 80, "九十": 90,
@@ -381,6 +406,104 @@ class SpeechRecognitionHelper: NSObject {
                 let tens = components[0].isEmpty ? 1 : (chineseToArabic[components[0]] ?? 0)
                 let ones = components[1].isEmpty ? 0 : (chineseToArabic[components[1]] ?? 0)
                 return tens * 10 + ones
+            }
+        }
+        
+        return nil
+    }
+    
+    /// 提取计时时长中的半小时表达
+    private func extractDurationHalfHourExpressions(from text: String) -> Int? {
+        let durationHalfHourExpressions: [(String, Int)] = [
+            // 计时X个半小时
+            ("计时六个半小时", 390),     // 6.5小时
+            ("计时五个半小时", 330),     // 5.5小时
+            ("计时四个半小时", 270),     // 4.5小时
+            ("计时三个半小时", 210),     // 3.5小时
+            ("计时两个半小时", 150),     // 2.5小时
+            ("计时一个半小时", 90),      // 1.5小时
+            
+            // 计时X点五小时
+            ("计时六点五小时", 390),     // 6.5小时
+            ("计时五点五小时", 330),     // 5.5小时
+            ("计时四点五小时", 270),     // 4.5小时
+            ("计时三点五小时", 210),     // 3.5小时
+            ("计时二点五小时", 150),     // 2.5小时
+            ("计时一点五小时", 90),      // 1.5小时
+            
+            // X个半小时计时
+            ("六个半小时计时", 390),     
+            ("五个半小时计时", 330),     
+            ("四个半小时计时", 270),     
+            ("三个半小时计时", 210),     
+            ("两个半小时计时", 150),     
+            ("一个半小时计时", 90),      
+            
+            // 单独的半小时计时
+            ("计时半个小时", 30),          
+            ("计时半小时", 30),            
+            ("半个小时计时", 30),          
+            ("半小时计时", 30),            
+        ]
+        
+        // 按照从长到短的顺序匹配
+        for (expression, minutes) in durationHalfHourExpressions {
+            if text.contains(expression) {
+                return minutes
+            }
+        }
+        
+        return nil
+    }
+    
+    /// 提取间隔时长中的半小时表达
+    private func extractIntervalHalfHourExpressions(from text: String) -> Int? {
+        let intervalHalfHourExpressions: [(String, Int)] = [
+            // 间隔X个半小时
+            ("间隔六个半小时", 390),     // 6.5小时
+            ("间隔五个半小时", 330),     // 5.5小时
+            ("间隔四个半小时", 270),     // 4.5小时
+            ("间隔三个半小时", 210),     // 3.5小时
+            ("间隔两个半小时", 150),     // 2.5小时
+            ("间隔一个半小时", 90),      // 1.5小时
+            
+            // 每隔X个半小时
+            ("每隔六个半小时", 390),     
+            ("每隔五个半小时", 330),     
+            ("每隔四个半小时", 270),     
+            ("每隔三个半小时", 210),     
+            ("每隔两个半小时", 150),     
+            ("每隔一个半小时", 90),      
+            
+            // 间隔X点五小时
+            ("间隔六点五小时", 390),     
+            ("间隔五点五小时", 330),     
+            ("间隔四点五小时", 270),     
+            ("间隔三点五小时", 210),     
+            ("间隔二点五小时", 150),     
+            ("间隔一点五小时", 90),      
+            
+            // 每隔X点五小时
+            ("每隔六点五小时", 390),     
+            ("每隔五点五小时", 330),     
+            ("每隔四点五小时", 270),     
+            ("每隔三点五小时", 210),     
+            ("每隔二点五小时", 150),     
+            ("每隔一点五小时", 90),      
+            
+            // 单独的半小时间隔
+            ("间隔半个小时", 30),          
+            ("间隔半小时", 30),            
+            ("每隔半个小时", 30),          
+            ("每隔半小时", 30),            
+            ("每半个小时", 30),            
+            ("每半小时", 30),              
+        ]
+        
+        // 按照从长到短的顺序匹配
+        for (expression, minutes) in intervalHalfHourExpressions {
+            if text.contains(expression) {
+                return minutes
             }
         }
         

@@ -16,6 +16,9 @@ class TimerViewModel: ObservableObject {
     /// 计时器是否正在运行
     @Published var isRunning = false
     
+    /// 计时器是否处于暂停状态（有计时任务但暂停）
+    @Published var isPaused = false
+    
     /// 剩余秒数
     @Published var remainingSeconds = 0
     
@@ -170,6 +173,12 @@ class TimerViewModel: ObservableObject {
     
     /// 开始计时
     func startTimer() {
+        startTimer(saveSettings: true)
+    }
+    
+    /// 开始计时（可选择是否保存设置）
+    /// - Parameter saveSettings: 是否保存设置到用户偏好（默认true）
+    func startTimer(saveSettings: Bool = true) {
         guard !isRunning else { return }
         
         // 检查后台App刷新权限
@@ -187,11 +196,16 @@ class TimerViewModel: ObservableObject {
         }
         
         isRunning = true
+        isPaused = false
         pausedTime = 0
         
-        // 保存用户的设置习惯
-        self.settings.saveAsUserPreferred()
-        logger.info("💾 保存用户偏好设置：计时\(self.settings.duration)分钟，间隔\(self.settings.interval)分钟")
+        // 只有在明确要求时才保存用户设置习惯（滚轮操作）
+        if saveSettings {
+            self.settings.saveAsUserPreferred()
+            logger.info("💾 保存用户偏好设置：计时\(self.settings.duration)分钟，间隔\(self.settings.interval)分钟")
+        } else {
+            logger.info("🎤 语音识别临时启动：计时\(self.settings.duration)分钟，间隔\(self.settings.interval)分钟（不保存设置）")
+        }
         
         // 开始计时时启动音乐播放以维持后台音频会话
         logger.info("🔄 计时开始，启动音乐播放")
@@ -214,6 +228,7 @@ class TimerViewModel: ObservableObject {
         guard isRunning else { return }
         
         isRunning = false
+        isPaused = true  // 设置为暂停状态
         timer?.invalidate()
         timer = nil
         
@@ -235,6 +250,7 @@ class TimerViewModel: ObservableObject {
     /// 停止计时
     func stopTimer() {
         isRunning = false
+        isPaused = false  // 清除暂停状态
         timer?.invalidate()
         timer = nil
         
@@ -253,6 +269,16 @@ class TimerViewModel: ObservableObject {
         
         // 取消所有通知
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        
+        // 恢复用户的滚轮设置（清除语音识别的临时设置）
+        restoreUserPreferredSettings()
+    }
+    
+    /// 恢复用户的滚轮偏好设置
+    private func restoreUserPreferredSettings() {
+        let userPreferredSettings = TimerSettings.userPreferred
+        self.settings = userPreferredSettings
+        logger.info("🔄 恢复用户滚轮设置：计时\(self.settings.duration)分钟，间隔\(self.settings.interval)分钟")
     }
     
     /// 重置计时器设置
@@ -316,21 +342,41 @@ class TimerViewModel: ObservableObject {
         // 间隔提醒（只有当间隔不为0时才提醒）
         if settings.interval > 0 && remainingMinutes > 0 && remainingMinutes % settings.interval == 0 && lastReminderMinute != remainingMinutes {
             lastReminderMinute = remainingMinutes
-            let message = "剩余时长\(remainingMinutes)分钟"
+            
+            // 统一格式：剩余时长X小时X分钟
+            let hours = remainingMinutes / 60
+            let minutes = remainingMinutes % 60
+            var message = "剩余时长"
+            if hours > 0 {
+                message += "\(hours)小时"
+            }
+            if minutes > 0 || hours == 0 {
+                message += "\(minutes)分钟"
+            }
+            
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："剩余时长[X]小时[X]分钟" (第332行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak(message)
         }
         
         // 特殊提醒：距离结束2分钟时的提醒（除了"不提醒"和"1分钟"间隔）
         if remainingMinutes == 2 && settings.interval != 0 && settings.interval != 1 && lastReminderMinute != remainingMinutes {
             lastReminderMinute = remainingMinutes
-            let message = "剩余2分钟，计时即将结束"
+            let message = "剩余时长2分钟，计时即将结束"
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："剩余时长2分钟，计时即将结束" (第342行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak(message)
         }
         
         // 1分钟间隔的情况：最后2分钟每分钟提醒
         if settings.interval == 1 && remainingMinutes <= 2 && remainingMinutes > 0 && lastReminderMinute != remainingMinutes {
             lastReminderMinute = remainingMinutes
-            let message = "剩余\(remainingMinutes)分钟"
+            let message = "剩余时长\(remainingMinutes)分钟"
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："剩余时长[X]分钟" (第352行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak(message)
         }
     }
@@ -338,6 +384,9 @@ class TimerViewModel: ObservableObject {
     /// 处理计时完成
     private func handleTimerCompletion() {
         HapticHelper.shared.lightImpact()
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // 语音播报内容："计时结束" (第341行)
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         SpeechHelper.shared.speak("计时结束")
         
         // 发送完成通知
@@ -500,6 +549,9 @@ class TimerViewModel: ObservableObject {
                 self.startTimer()
                 // 立即播报，使用优化的锁屏TTS配置
                 self.logger.info("🎵 锁屏播放 - 开始播报确认")
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                // 语音播报内容："恢复计时" (第503行)
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 SpeechHelper.shared.speak("恢复计时")
             }
         }
@@ -512,6 +564,9 @@ class TimerViewModel: ObservableObject {
                 self.pauseTimer()
                 // 立即播报，使用优化的锁屏TTS配置
                 self.logger.info("🎵 锁屏暂停 - 开始播报确认")
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                // 语音播报内容："暂停计时" (第515行)
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 SpeechHelper.shared.speak("暂停计时")
             }
         }
@@ -524,11 +579,17 @@ class TimerViewModel: ObservableObject {
                 self.pauseTimer()
                 // 立即播报，使用优化的锁屏TTS配置
                 self.logger.info("🎵 锁屏切换(暂停) - 开始播报确认")
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                // 语音播报内容："暂停计时" (第527行)
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 SpeechHelper.shared.speak("暂停计时")
             } else {
                 self.startTimer()
                 // 立即播报，使用优化的锁屏TTS配置
                 self.logger.info("🎵 锁屏切换(开始) - 开始播报确认")
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                // 语音播报内容："恢复计时" (第532行)
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 SpeechHelper.shared.speak("恢复计时")
             }
         }

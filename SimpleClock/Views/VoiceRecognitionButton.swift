@@ -107,6 +107,9 @@ struct VoiceRecognitionButton: View {
         ContinuousAudioPlayer.shared.setVolume(0.001)
         
         // 播报提示
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // 语音播报内容："请说出您的计时要求" (第110行)
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         SpeechHelper.shared.speak("请说出您的计时要求")
         
         // 等待提示播报完成后开始录音和动画（约2秒）
@@ -178,6 +181,9 @@ struct VoiceRecognitionButton: View {
         } else {
             // 其他指令（如计时设置）播报识别结果
             let recognitionMessage = "识别到：\(result)"
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："识别到：[X]" (第184行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak(recognitionMessage)
             
             // 等待播报完成后再执行相应操作
@@ -610,8 +616,13 @@ struct VoiceRecognitionButton: View {
         if hasIntervalKeyword {
             var intervalMinutes = 0
             
+            // 首先检查是否包含特殊的半小时表达
+            let halfHourNumbers = extractIntervalHalfHourExpressions(from: text)
+            if !halfHourNumbers.isEmpty {
+                intervalMinutes = halfHourNumbers.first ?? 0
+            }
             // 处理小时 + 分钟的复合格式（如"间隔一小时三十分钟"、"每隔一小时三十分钟"）
-            if text.contains("小时") && text.contains("分钟") {
+            else if text.contains("小时") && text.contains("分钟") {
                 // 提取间隔中的小时数
                 if let hours = extractIntervalHoursFromText(text) {
                     intervalMinutes += hours * 60
@@ -762,9 +773,13 @@ struct VoiceRecognitionButton: View {
         return nil
     }
     
-    /// 从文本中提取所有数字
+    /// 从文本中提取所有数字（包括小数）
     private func extractNumbers(from text: String) -> [Int] {
         var numbers: [Int] = []
+        
+        // 首先处理特殊的小数表达
+        let halfHourNumbers = extractHalfHourExpressions(from: text)
+        numbers.append(contentsOf: halfHourNumbers)
         
         // 提取阿拉伯数字
         let regex = try? NSRegularExpression(pattern: "\\d+", options: [])
@@ -780,6 +795,104 @@ struct VoiceRecognitionButton: View {
         // 提取中文数字
         let chineseNumbers = extractChineseNumbers(from: text)
         numbers.append(contentsOf: chineseNumbers)
+        
+        return numbers
+    }
+    
+    /// 提取半小时相关表达，返回对应的分钟数
+    private func extractHalfHourExpressions(from text: String) -> [Int] {
+        var numbers: [Int] = []
+        
+        // 常用的半小时表达：返回分钟数
+        // 注意：按照长度从长到短排序，避免匹配冲突
+        let halfHourExpressions: [(String, Int)] = [
+            // X个半小时 = X * 90分钟（优先匹配长表达）
+            ("六个半小时", 390),     // 6.5小时
+            ("五个半小时", 330),     // 5.5小时
+            ("四个半小时", 270),     // 4.5小时
+            ("三个半小时", 210),     // 3.5小时
+            ("两个半小时", 150),     // 2.5小时
+            ("一个半小时", 90),      // 1.5小时
+            
+            // X点五小时 = X * 60 + 30分钟
+            ("六点五小时", 390),     // 6.5小时
+            ("五点五小时", 330),     // 5.5小时
+            ("四点五小时", 270),     // 4.5小时
+            ("三点五小时", 210),     // 3.5小时
+            ("二点五小时", 150),     // 2.5小时
+            ("一点五小时", 90),      // 1.5小时
+            
+            // 单独的半小时（最后匹配，避免被包含在其他表达中）
+            ("半个小时", 30),        // 0.5小时
+            ("半小时", 30),          // 0.5小时
+        ]
+        
+        // 按照从长到短的顺序匹配，避免短表达被错误匹配
+        for (expression, minutes) in halfHourExpressions {
+            if text.contains(expression) {
+                numbers.append(minutes)
+                // 匹配到一个就停止，避免重复匹配
+                break
+            }
+        }
+        
+        return numbers
+    }
+    
+    /// 专门提取间隔中的半小时表达
+    private func extractIntervalHalfHourExpressions(from text: String) -> [Int] {
+        var numbers: [Int] = []
+        
+        // 间隔相关的半小时表达
+        let intervalHalfHourExpressions: [(String, Int)] = [
+            // 间隔X个半小时
+            ("间隔六个半小时", 390),    // 6.5小时
+            ("间隔五个半小时", 330),    // 5.5小时
+            ("间隔四个半小时", 270),    // 4.5小时
+            ("间隔三个半小时", 210),    // 3.5小时
+            ("间隔两个半小时", 150),    // 2.5小时
+            ("间隔一个半小时", 90),     // 1.5小时
+            
+            // 每隔X个半小时
+            ("每隔六个半小时", 390),    
+            ("每隔五个半小时", 330),    
+            ("每隔四个半小时", 270),    
+            ("每隔三个半小时", 210),    
+            ("每隔两个半小时", 150),    
+            ("每隔一个半小时", 90),     
+            
+            // 间隔X点五小时
+            ("间隔六点五小时", 390),    
+            ("间隔五点五小时", 330),    
+            ("间隔四点五小时", 270),    
+            ("间隔三点五小时", 210),    
+            ("间隔二点五小时", 150),    
+            ("间隔一点五小时", 90),     
+            
+            // 每隔X点五小时
+            ("每隔六点五小时", 390),    
+            ("每隔五点五小时", 330),    
+            ("每隔四点五小时", 270),    
+            ("每隔三点五小时", 210),    
+            ("每隔二点五小时", 150),    
+            ("每隔一点五小时", 90),     
+            
+            // 单独的半小时间隔
+            ("间隔半个小时", 30),       
+            ("间隔半小时", 30),         
+            ("每隔半个小时", 30),       
+            ("每隔半小时", 30),         
+            ("每半个小时", 30),         
+            ("每半小时", 30),           
+        ]
+        
+        // 按照从长到短的顺序匹配
+        for (expression, minutes) in intervalHalfHourExpressions {
+            if text.contains(expression) {
+                numbers.append(minutes)
+                break
+            }
+        }
         
         return numbers
     }
@@ -822,8 +935,40 @@ struct VoiceRecognitionButton: View {
         case .startTimer:
             // 开始计时：使用当前界面显示的设置
             if !viewModel.isRunning {
-                viewModel.startTimer()
-                speakConfirmationOnly("开始计时")
+                viewModel.startTimer(saveSettings: false)  // 语音识别不保存设置
+                
+                // 构建包含间隔信息的播报消息
+                let hours = viewModel.remainingSeconds / 3600
+                let remainingSecondsAfterHours = viewModel.remainingSeconds % 3600
+                let minutes = (remainingSecondsAfterHours + 59) / 60
+                
+                var message = "开始计时，剩余时长"
+                if hours > 0 {
+                    message += "\(hours)小时"
+                }
+                if minutes > 0 || hours == 0 {
+                    message += "\(minutes)分钟"
+                }
+                
+                // 添加间隔信息
+                message += "，间隔"
+                let interval = viewModel.settings.interval
+                if interval == 0 {
+                    message += "不提醒"
+                } else if interval < 60 {
+                    message += "\(interval)分钟"
+                } else if interval == 60 {
+                    message += "1小时"
+                } else {
+                    let intervalHours = interval / 60
+                    let intervalMinutes = interval % 60
+                    message += "\(intervalHours)小时"
+                    if intervalMinutes > 0 {
+                        message += "\(intervalMinutes)分钟"
+                    }
+                }
+                
+                speakConfirmationOnly(message)
             } else {
                 speakConfirmationOnly("计时器已在运行")
             }
@@ -841,7 +986,7 @@ struct VoiceRecognitionButton: View {
         case .resumeTimer:
             // 恢复计时
             if !viewModel.isRunning && viewModel.remainingSeconds > 0 {
-                viewModel.startTimer()
+                viewModel.startTimer(saveSettings: false)  // 语音识别不保存设置
                 speakConfirmationOnly("恢复计时")
             } else {
                 speakConfirmationOnly("无法恢复计时")
@@ -855,6 +1000,9 @@ struct VoiceRecognitionButton: View {
         case .speakTime:
             // 时间播报
             speakConfirmationOnly("") // 不需要确认，直接播报
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："当前时间[时间段][小时]点[分钟]分" (第893行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speakCurrentTime()
             // 播报完成后恢复后台音频
             DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
@@ -866,6 +1014,9 @@ struct VoiceRecognitionButton: View {
             if viewModel.remainingSeconds > 0 {
                 // 有计时任务运行时，播报剩余时长
                 speakConfirmationOnly("")
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                // 语音播报内容："剩余时长[X]小时[X]分钟" (第908行)
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 SpeechHelper.shared.speakRemainingTime(remainingSeconds: viewModel.remainingSeconds)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                     resumeBackgroundAudioIfNeeded()
@@ -884,14 +1035,46 @@ struct VoiceRecognitionButton: View {
             var newSettings = viewModel.settings
             newSettings.duration = duration
             viewModel.updateSettings(newSettings)
-            viewModel.startTimer()
-            let durationText = formatDurationText(duration)
-            speakConfirmationOnly("开始计时\(durationText)")
+            viewModel.startTimer(saveSettings: false)  // 语音识别不保存设置
+            
+            // 构建包含间隔信息的播报消息
+            let hours = viewModel.remainingSeconds / 3600
+            let remainingSecondsAfterHours = viewModel.remainingSeconds % 3600
+            let minutes = (remainingSecondsAfterHours + 59) / 60
+            
+            var message = "开始计时，剩余时长"
+            if hours > 0 {
+                message += "\(hours)小时"
+            }
+            if minutes > 0 || hours == 0 {
+                message += "\(minutes)分钟"
+            }
+            
+            // 添加间隔信息
+            message += "，间隔"
+            let interval = viewModel.settings.interval
+            if interval == 0 {
+                message += "不提醒"
+            } else if interval < 60 {
+                message += "\(interval)分钟"
+            } else if interval == 60 {
+                message += "1小时"
+            } else {
+                let intervalHours = interval / 60
+                let intervalMinutes = interval % 60
+                message += "\(intervalHours)小时"
+                if intervalMinutes > 0 {
+                    message += "\(intervalMinutes)分钟"
+                }
+            }
+            
+            speakConfirmationOnly(message)
             
         case .setInterval(let interval):
+            // 语音识别仅临时修改间隔，不保存到用户偏好
             var newSettings = viewModel.settings
             newSettings.interval = interval
-            viewModel.updateSettings(newSettings)
+            viewModel.updateSettings(newSettings)  // 仅临时更新，不保存
             let intervalText = formatDurationText(interval)
             speakConfirmationOnly("设置提醒间隔为\(intervalText)")
             
@@ -904,10 +1087,39 @@ struct VoiceRecognitionButton: View {
             newSettings.duration = duration
             newSettings.interval = interval
             viewModel.updateSettings(newSettings)
-            viewModel.startTimer()
-            let durationText = formatDurationText(duration)
-            let intervalText = formatDurationText(interval)
-            speakConfirmationOnly("开始计时\(durationText)，间隔\(intervalText)")
+            viewModel.startTimer(saveSettings: false)  // 语音识别不保存设置
+            
+            // 构建包含间隔信息的播报消息
+            let hours = viewModel.remainingSeconds / 3600
+            let remainingSecondsAfterHours = viewModel.remainingSeconds % 3600
+            let minutes = (remainingSecondsAfterHours + 59) / 60
+            
+            var message = "开始计时，剩余时长"
+            if hours > 0 {
+                message += "\(hours)小时"
+            }
+            if minutes > 0 || hours == 0 {
+                message += "\(minutes)分钟"
+            }
+            
+            // 添加间隔信息
+            message += "，间隔"
+            if interval == 0 {
+                message += "不提醒"
+            } else if interval < 60 {
+                message += "\(interval)分钟"
+            } else if interval == 60 {
+                message += "1小时"
+            } else {
+                let intervalHours = interval / 60
+                let intervalMinutes = interval % 60
+                message += "\(intervalHours)小时"
+                if intervalMinutes > 0 {
+                    message += "\(intervalMinutes)分钟"
+                }
+            }
+            
+            speakConfirmationOnly(message)
             
         case .noSpeechDetected:
             speakConfirmationOnly("未识别到有效计时要求，请再试一次")
@@ -930,6 +1142,11 @@ struct VoiceRecognitionButton: View {
                 ContinuousAudioPlayer.shared.setVolume(0.001)
             }
             
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容：动态语音确认信息（多种内容） (第1037行)
+            // 包括："开始计时，剩余时长X分钟，间隔X分钟"、"暂停计时"、"恢复计时"、"结束计时"
+            // "当前无计时任务"、"未识别到有效计时要求，请再试一次"、"设置提醒间隔为X分钟"等
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak(message)
             
             // 等待播报完成后恢复后台音频
@@ -952,6 +1169,10 @@ struct VoiceRecognitionButton: View {
     /// 播报确认信息，支持自定义音频维持逻辑
     private func speakConfirmationOnlyWithAudio(_ message: String, shouldMaintainAudio: Bool) {
         if !message.isEmpty {
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容：动态语音确认信息（音频维持版本） (第1064行)
+            // 主要用于"暂停计时"等需要保持后台音频的场景
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak(message)
             
             // 等待播报完成后处理音频

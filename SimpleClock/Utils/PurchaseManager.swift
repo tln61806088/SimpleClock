@@ -154,6 +154,9 @@ class PurchaseManager: NSObject, ObservableObject {
             self.purchaseCompletionHandler = nil
             
             // 播报购买成功
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："购买成功，[产品名称]已解锁" (第157行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak("购买成功，\(identifier.displayName)已解锁")
         }
     }
@@ -167,6 +170,9 @@ class PurchaseManager: NSObject, ObservableObject {
             self.purchaseCompletionHandler = nil
             
             // 播报购买失败
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："购买失败，请稍后重试" (第170行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak("购买失败，请稍后重试")
         }
     }
@@ -236,6 +242,9 @@ extension PurchaseManager: SKPaymentTransactionObserver {
             self.purchaseCompletionHandler = nil
             
             // 播报恢复成功
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："购买记录已恢复" (第239行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak("购买记录已恢复")
         }
     }

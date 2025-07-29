@@ -27,8 +27,8 @@ struct MainControlButtonsView: View {
                     
                     // 开始计时/暂停计时按钮
                     ControlButton(
-                        title: viewModel.isRunning ? "暂停计时" : "开始计时",
-                        systemImage: viewModel.isRunning ? "pause.fill" : "play.fill",
+                        title: viewModel.isRunning ? "暂停计时" : (viewModel.isPaused ? "恢复计时" : "开始计时"),
+                        systemImage: viewModel.isRunning ? "pause.fill" : (viewModel.isPaused ? "play.fill" : "play.fill"),
                         backgroundColor: .gray,
                         buttonHeight: calculateButtonHeight(for: geometry),
                         isMainButton: true
@@ -80,6 +80,9 @@ struct MainControlButtonsView: View {
     /// 处理时间播报
     private func handleTimeAnnouncement() {
         HapticHelper.shared.lightImpact()
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // 语音播报内容："当前时间[时间段][小时]点[分钟]分" (第83行)
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         SpeechHelper.shared.speakCurrentTime()
     }
     
@@ -89,22 +92,56 @@ struct MainControlButtonsView: View {
         
         if viewModel.isRunning {
             viewModel.pauseTimer()
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："暂停计时" (第92行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speakTimerAction("暂停计时")
+        } else if viewModel.isPaused {
+            // 恢复计时
+            viewModel.startTimer()
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："恢复计时"
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            SpeechHelper.shared.speakTimerAction("恢复计时")
         } else {
+            // 全新开始计时
             viewModel.startTimer()
             // 播报开始计时和剩余时长，使用连贯的播报
             let hours = viewModel.remainingSeconds / 3600
             let remainingSecondsAfterHours = viewModel.remainingSeconds % 3600
             let minutes = (remainingSecondsAfterHours + 59) / 60
             
-            var message = "开始计时，剩余时长"
+            var message = "开始计时， 剩余时长"
             if hours > 0 {
                 message += "\(hours)小时"
-            }
-            if minutes > 0 || hours == 0 {
+                if minutes > 0 {
+                    message += "\(minutes)分钟"
+                }
+            } else {
                 message += "\(minutes)分钟"
             }
             
+            // 添加间隔信息
+            message += "，间隔"
+            let interval = viewModel.settings.interval
+            if interval == 0 {
+                message += "不提醒"
+            } else if interval < 60 {
+                message += "\(interval)分钟"
+            } else if interval == 60 {
+                message += "1小时"
+            } else {
+                let intervalHours = interval / 60
+                let intervalMinutes = interval % 60
+                message += "\(intervalHours)小时"
+                if intervalMinutes > 0 {
+                    message += "\(intervalMinutes)分钟"
+                }
+            }
+            
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容：统一为连续播报，与语音识别保持一致
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak(message)
         }
     }
@@ -115,10 +152,16 @@ struct MainControlButtonsView: View {
         
         if viewModel.remainingSeconds > 0 {
             // 有计时任务运行时，播报剩余时间
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："剩余时长[X]小时[X]分钟" (第136行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speakRemainingTime(remainingSeconds: viewModel.remainingSeconds)
         } else {
             // 无计时任务时，播报状态
             let message = "当前无计时任务"
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："当前无计时任务" (第140行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak(message)
         }
     }
@@ -127,6 +170,9 @@ struct MainControlButtonsView: View {
     private func handleEndTimer() {
         HapticHelper.shared.lightImpact()
         viewModel.stopTimer()
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // 语音播报内容："结束计时" (第148行)
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         SpeechHelper.shared.speakTimerAction("结束计时")
     }
 }

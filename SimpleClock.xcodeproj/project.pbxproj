@@ -408,6 +408,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = SimpleClock/SimpleClock.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -416,6 +417,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SimpleClock/Info.plist;
 				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.sunfan.SimpleClock.audio-playback com.sunfan.SimpleClock.background-refresh";
+				INFOPLIST_KEY_CFBundleDisplayName = "极简语音计时";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "简单时钟需要使用麦克风进行语音识别，以便您通过语音指令控制计时器功能，包括开始、暂停、恢复和停止计时。这提供了更好的无障碍体验。";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "简单时钟需要使用语音识别功能来识别您的语音指令，例如\"开始计时\"、\"暂停计时\"、\"恢复计时\"和\"停止计时\"。这使得视障用户能够方便地控制计时器，提供更好的无障碍体验。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -443,6 +445,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = SimpleClock/SimpleClock.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -451,6 +454,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SimpleClock/Info.plist;
 				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.sunfan.SimpleClock.audio-playback com.sunfan.SimpleClock.background-refresh";
+				INFOPLIST_KEY_CFBundleDisplayName = "极简语音计时";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "简单时钟需要使用麦克风进行语音识别，以便您通过语音指令控制计时器功能，包括开始、暂停、恢复和停止计时。这提供了更好的无障碍体验。";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "简单时钟需要使用语音识别功能来识别您的语音指令，例如\"开始计时\"、\"暂停计时\"、\"恢复计时\"和\"停止计时\"。这使得视障用户能够方便地控制计时器，提供更好的无障碍体验。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

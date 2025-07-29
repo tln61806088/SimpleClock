@@ -29,7 +29,7 @@ struct TimerSettings: Equatable {
     static let durationRange = 1...720
     
     /// 可选的提醒间隔选项（分钟）
-    static let intervalOptions = [0, 1, 5, 10, 15, 30, 60, 90]
+    static let intervalOptions = [0, 1, 5, 10, 15, 30, 60, 90, 120, 150, 180]
     
     /// 初始化
     /// - Parameters:
