@@ -57,13 +57,13 @@ struct DigitalClockView: View {
             let totalMinutes = viewModel.remainingSeconds / 60
             let hours = totalMinutes / 60
             let result = String(format: "%02d", hours)
-            print("🕐 hourString: 倒计时模式 - remainingSeconds=\(viewModel.remainingSeconds), hours=\(hours), result='\(result)'")
+            // print("🕐 hourString: 倒计时模式 - remainingSeconds=\(viewModel.remainingSeconds), hours=\(hours), result='\(result)'")
             return result
         } else {
             // 显示当前时间
             let hour = Calendar.current.component(.hour, from: currentTime)
             let result = String(format: "%02d", hour)
-            print("🕐 hourString: 时钟模式 - currentTime=\(currentTime), hour=\(hour), result='\(result)'")
+            // print("🕐 hourString: 时钟模式 - currentTime=\(currentTime), hour=\(hour), result='\(result)'")
             return result
         }
     }
@@ -74,13 +74,13 @@ struct DigitalClockView: View {
             let totalMinutes = viewModel.remainingSeconds / 60
             let minutes = totalMinutes % 60
             let result = String(format: "%02d", minutes)
-            print("🕐 minuteString: 倒计时模式 - remainingSeconds=\(viewModel.remainingSeconds), minutes=\(minutes), result='\(result)'")
+            // print("🕐 minuteString: 倒计时模式 - remainingSeconds=\(viewModel.remainingSeconds), minutes=\(minutes), result='\(result)'")
             return result
         } else {
             // 显示当前时间
             let minute = Calendar.current.component(.minute, from: currentTime)
             let result = String(format: "%02d", minute)
-            print("🕐 minuteString: 时钟模式 - currentTime=\(currentTime), minute=\(minute), result='\(result)'")
+            // print("🕐 minuteString: 时钟模式 - currentTime=\(currentTime), minute=\(minute), result='\(result)'")
             return result
         }
     }
