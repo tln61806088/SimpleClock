@@ -5,6 +5,11 @@ struct DigitalClockView: View {
     @State private var currentTime = Date()
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
+    // 性能优化：分级重绘缓存，只有变化时才更新
+    @State private var cachedHour = ""
+    @State private var cachedMinute = ""
+    @State private var cachedSecond = ""
+    
     // 计时器相关参数（暂时保留但不使用）
     var timerViewModel: TimerViewModel? = nil
     var isCompactMode: Bool = false
@@ -13,26 +18,22 @@ struct DigitalClockView: View {
         VStack(spacing: 16) {
             // 主要时钟显示
             HStack(spacing: 0) {
-                // 时
-                TimeDigitView(text: hourString, size: DesignSystem.Sizes.clockDigit)
+                // 时（使用缓存，减少重绘）
+                TimeDigitView(text: cachedHour, size: DesignSystem.Sizes.clockDigit)
                 
-                // 冒号（带闪烁动画）
+                // 冒号（固定显示）
                 TimeDigitView(text: ":", size: DesignSystem.Sizes.colon)
-                    .opacity(shouldShowColon ? 1.0 : 0.3)
-                    .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: currentTime)
                     .padding(.horizontal, DesignSystem.Spacing.clockDigitSpacing)
                 
-                // 分
-                TimeDigitView(text: minuteString, size: DesignSystem.Sizes.clockDigit)
+                // 分（使用缓存，减少重绘）
+                TimeDigitView(text: cachedMinute, size: DesignSystem.Sizes.clockDigit)
                 
-                // 冒号（带闪烁动画）
+                // 冒号（固定显示）
                 TimeDigitView(text: ":", size: DesignSystem.Sizes.colon)
-                    .opacity(shouldShowColon ? 1.0 : 0.3)
-                    .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: currentTime)
                     .padding(.horizontal, DesignSystem.Spacing.clockDigitSpacing)
                 
-                // 秒
-                TimeDigitView(text: secondString, size: DesignSystem.Sizes.clockDigit)
+                // 秒（使用缓存，减少重绘）
+                TimeDigitView(text: cachedSecond, size: DesignSystem.Sizes.clockDigit)
             }
             .shadow(color: DesignSystem.Shadows.largePrimaryShadow.color, 
                    radius: DesignSystem.Shadows.largePrimaryShadow.radius,
@@ -45,63 +46,16 @@ struct DigitalClockView: View {
         }
         .onReceive(timer) { input in
             currentTime = input
+            updateCachedStringsSelectively()
+        }
+        .onAppear {
+            updateCachedStringsSelectively()
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(accessibilityTimeString))
     }
     
-    // 计算显示的时间字符串
-    private var hourString: String {
-        if let viewModel = timerViewModel, viewModel.isRunning || viewModel.remainingSeconds > 0 {
-            // 显示倒计时时间
-            let totalMinutes = viewModel.remainingSeconds / 60
-            let hours = totalMinutes / 60
-            let result = String(format: "%02d", hours)
-            // print("🕐 hourString: 倒计时模式 - remainingSeconds=\(viewModel.remainingSeconds), hours=\(hours), result='\(result)'")
-            return result
-        } else {
-            // 显示当前时间
-            let hour = Calendar.current.component(.hour, from: currentTime)
-            let result = String(format: "%02d", hour)
-            // print("🕐 hourString: 时钟模式 - currentTime=\(currentTime), hour=\(hour), result='\(result)'")
-            return result
-        }
-    }
-    
-    private var minuteString: String {
-        if let viewModel = timerViewModel, viewModel.isRunning || viewModel.remainingSeconds > 0 {
-            // 显示倒计时时间
-            let totalMinutes = viewModel.remainingSeconds / 60
-            let minutes = totalMinutes % 60
-            let result = String(format: "%02d", minutes)
-            // print("🕐 minuteString: 倒计时模式 - remainingSeconds=\(viewModel.remainingSeconds), minutes=\(minutes), result='\(result)'")
-            return result
-        } else {
-            // 显示当前时间
-            let minute = Calendar.current.component(.minute, from: currentTime)
-            let result = String(format: "%02d", minute)
-            // print("🕐 minuteString: 时钟模式 - currentTime=\(currentTime), minute=\(minute), result='\(result)'")
-            return result
-        }
-    }
-    
-    private var secondString: String {
-        if let viewModel = timerViewModel, viewModel.isRunning || viewModel.remainingSeconds > 0 {
-            // 显示倒计时时间
-            let seconds = viewModel.remainingSeconds % 60
-            return String(format: "%02d", seconds)
-        } else {
-            // 显示当前时间
-            let second = Calendar.current.component(.second, from: currentTime)
-            return String(format: "%02d", second)
-        }
-    }
-    
-    private var shouldShowColon: Bool {
-        // 冒号闪烁效果
-        let second = Calendar.current.component(.second, from: currentTime)
-        return second % 2 == 0
-    }
+    // 原有的计算属性已迁移到缓存方法中，显著提升性能
     
     /// 判断是否处于计时模式
     private var isInTimerMode: Bool {
@@ -115,6 +69,61 @@ struct DigitalClockView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
         return "当前时间：" + formatter.string(from: currentTime)
+    }
+    
+    // MARK: - 性能优化：智能分级重绘
+    
+    /// 智能更新缓存：只有变化时才更新，大幅减少UI重绘
+    private func updateCachedStringsSelectively() {
+        let newHour = calculateHourString()
+        let newMinute = calculateMinuteString()
+        let newSecond = calculateSecondString()
+        
+        // 分级更新：只有真正变化时才更新@State，触发UI重绘
+        if cachedHour != newHour {
+            cachedHour = newHour
+        }
+        if cachedMinute != newMinute {
+            cachedMinute = newMinute
+        }
+        if cachedSecond != newSecond {
+            cachedSecond = newSecond
+        }
+    }
+    
+    /// 计算小时字符串（避免重复计算）
+    private func calculateHourString() -> String {
+        if let viewModel = timerViewModel, viewModel.isRunning || viewModel.remainingSeconds > 0 {
+            let totalMinutes = viewModel.remainingSeconds / 60
+            let hours = totalMinutes / 60
+            return String(format: "%02d", hours)
+        } else {
+            let hour = Calendar.current.component(.hour, from: currentTime)
+            return String(format: "%02d", hour)
+        }
+    }
+    
+    /// 计算分钟字符串（避免重复计算）
+    private func calculateMinuteString() -> String {
+        if let viewModel = timerViewModel, viewModel.isRunning || viewModel.remainingSeconds > 0 {
+            let totalMinutes = viewModel.remainingSeconds / 60
+            let minutes = totalMinutes % 60
+            return String(format: "%02d", minutes)
+        } else {
+            let minute = Calendar.current.component(.minute, from: currentTime)
+            return String(format: "%02d", minute)
+        }
+    }
+    
+    /// 计算秒钟字符串（避免重复计算）
+    private func calculateSecondString() -> String {
+        if let viewModel = timerViewModel, viewModel.isRunning || viewModel.remainingSeconds > 0 {
+            let seconds = viewModel.remainingSeconds % 60
+            return String(format: "%02d", seconds)
+        } else {
+            let second = Calendar.current.component(.second, from: currentTime)
+            return String(format: "%02d", second)
+        }
     }
 }
 
