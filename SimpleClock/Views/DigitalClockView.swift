@@ -51,6 +51,14 @@ struct DigitalClockView: View {
         .onAppear {
             updateCachedStringsSelectively()
         }
+        .onChange(of: timerViewModel?.remainingSeconds) { _ in
+            // 监听计时器剩余时间变化，立即更新缓存
+            updateCachedStringsSelectively()
+        }
+        .onChange(of: timerViewModel?.isRunning) { _ in
+            // 监听计时器运行状态变化，立即更新缓存
+            updateCachedStringsSelectively()
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(accessibilityTimeString))
     }

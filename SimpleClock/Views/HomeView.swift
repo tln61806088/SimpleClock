@@ -9,6 +9,9 @@ struct HomeView: View {
     @StateObject private var colorThemeState = ColorThemeState()
     @State private var timerSettings = TimerSettings.userPreferred
     
+    // 性能优化：缓存TimerPicker的启用状态，避免每秒重绘
+    @State private var isTimerPickerEnabled = true
+    
     let mainButtonHeight: CGFloat = 80
     let mainButtonSpacing: CGFloat = 16
     
@@ -58,7 +61,7 @@ struct HomeView: View {
                         .padding(.horizontal, 40)
                     
                         // 计时设置区域
-                        TimerPickerView(settings: $timerSettings, isEnabled: !timerViewModel.isRunning)
+                        TimerPickerView(settings: $timerSettings, isEnabled: isTimerPickerEnabled)
                             .onChange(of: timerSettings) { newSettings in
                                 timerViewModel.updateSettings(newSettings)
                             }
@@ -86,9 +89,19 @@ struct HomeView: View {
         }
         .onAppear {
             timerViewModel.updateSettings(timerSettings)
+            // 初始化TimerPicker状态
+            isTimerPickerEnabled = !timerViewModel.isRunning
             // 添加进入动画
             withAnimation(.easeInOut(duration: 0.8)) {
                 // 可以在这里添加状态变化来驱动动画
+            }
+        }
+        .onChange(of: timerViewModel.isRunning) { isRunning in
+            // 只在计时器运行状态真正变化时更新TimerPicker启用状态
+            // 避免每秒的remainingSeconds变化导致重绘
+            let newEnabled = !isRunning
+            if isTimerPickerEnabled != newEnabled {
+                isTimerPickerEnabled = newEnabled
             }
         }
     }
