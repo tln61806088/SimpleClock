@@ -11,7 +11,7 @@ class TimerViewModel: ObservableObject {
     // MARK: - Published Properties
     
     /// 计时器设置
-    @Published var settings = TimerSettings.default
+    @Published var settings = TimerSettings.userPreferred
     
     /// 计时器是否正在运行
     @Published var isRunning = false
@@ -189,6 +189,10 @@ class TimerViewModel: ObservableObject {
         isRunning = true
         pausedTime = 0
         
+        // 保存用户的设置习惯
+        self.settings.saveAsUserPreferred()
+        logger.info("💾 保存用户偏好设置：计时\(self.settings.duration)分钟，间隔\(self.settings.interval)分钟")
+        
         // 开始计时时启动音乐播放以维持后台音频会话
         logger.info("🔄 计时开始，启动音乐播放")
         continuousAudioPlayer.startContinuousPlayback()
@@ -241,8 +245,8 @@ class TimerViewModel: ObservableObject {
         pausedTime = 0
         lastReminderMinute = -1
         
-        // 结束计时后，将剩余时间重置为0，恢复正常时钟显示
-        remainingSeconds = 0
+        // 结束计时后，重置为当前设置的计时时长
+        remainingSeconds = settings.duration * 60
         
         // 清除锁屏媒体信息
         nowPlayingManager.clearNowPlayingInfo()

@@ -7,7 +7,7 @@ struct HomeView: View {
     @ObservedObject private var themeManager = ThemeManager.shared
     @StateObject private var timerViewModel = TimerViewModel()
     @StateObject private var colorThemeState = ColorThemeState()
-    @State private var timerSettings = TimerSettings.default
+    @State private var timerSettings = TimerSettings.userPreferred
     
     let mainButtonHeight: CGFloat = 80
     let mainButtonSpacing: CGFloat = 16

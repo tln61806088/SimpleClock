@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 主要操作按钮区域
 /// 第一行：时间播报、开始计时/暂停计时
-/// 第二行：剩余时间、结束计时
+/// 第二行：剩余时长、结束计时
 /// 第三行：语音识别按钮（大圆形）
 struct MainControlButtonsView: View {
     
@@ -39,9 +39,9 @@ struct MainControlButtonsView: View {
                 
                 // 第二行按钮
                 HStack(spacing: DesignSystem.Spacing.buttonSpacing) {
-                    // 剩余时间按钮
+                    // 剩余时长按钮
                     ControlButton(
-                        title: "剩余时间",
+                        title: "剩余时长",
                         systemImage: "timer.circle.fill",
                         backgroundColor: .gray,
                         buttonHeight: calculateButtonHeight(for: geometry),
@@ -96,7 +96,7 @@ struct MainControlButtonsView: View {
         }
     }
     
-    /// 处理剩余时间播报
+    /// 处理剩余时长播报
     private func handleRemainingTime() {
         HapticHelper.shared.lightImpact()
         
