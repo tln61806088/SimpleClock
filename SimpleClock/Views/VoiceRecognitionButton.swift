@@ -262,44 +262,90 @@ struct VoiceRecognitionButton: View {
     
     /// 第一阶段匹配：专门提取计时时长部分 "计时x（小时、分钟）"
     private func extractTimerDurationOnly(from text: String) -> Int? {
+        print("🐛 调试: extractTimerDurationOnly输入='\(text)'")
         // 1. 检查是否包含"计时"关键词
         guard let timerRange = text.range(of: "计时") else {
+            print("🐛 调试: 未找到'计时'关键词")
             return nil
         }
         
-        // 2. 从"计时"之后开始搜索
-        let searchText = String(text[timerRange.upperBound...])
+        // 2. 从"计时"之后开始搜索，如果有逗号则只取逗号前的部分
+        var searchText = String(text[timerRange.upperBound...])
+        if let commaRange = searchText.range(of: "，") {
+            searchText = String(searchText[..<commaRange.lowerBound])
+        }
+        print("🐛 调试: 处理后的searchText='\(searchText)'")
         
-        // 3. 提取"计时"后的第一个完整数字
+        // 3. 检查是否包含复合表达式（既有小时又有分钟）
+        if searchText.contains("小时") && searchText.contains("分钟") {
+            print("🐛 调试: 检测到复合表达式")
+            var totalMinutes = 0
+            
+            // 提取小时数
+            let numbers = extractNumbers(from: searchText)
+            print("🐛 调试: 提取到的数字=\(numbers)")
+            
+            // 查找小时数（在"小时"之前的数字）
+            for number in numbers {
+                if let hourIndex = searchText.range(of: "\(number)小时") {
+                    print("🐛 调试: 找到小时数=\(number)")
+                    totalMinutes += number * 60
+                    break
+                }
+            }
+            
+            // 查找分钟数（在"分钟"之前且在"小时"之后的数字）
+            if let hourIndex = searchText.range(of: "小时") {
+                let textAfterHour = String(searchText[hourIndex.upperBound...])
+                for number in numbers {
+                    if textAfterHour.contains("\(number)分钟") {
+                        print("🐛 调试: 找到分钟数=\(number)")
+                        totalMinutes += number
+                        break
+                    }
+                }
+            }
+            
+            print("🐛 调试: 复合表达式总分钟数=\(totalMinutes)")
+            return totalMinutes > 0 ? totalMinutes : nil
+        }
+        
+        // 4. 处理单一单位表达式（原有逻辑）
         let numbers = extractNumbers(from: searchText) 
         guard let firstNumber = numbers.first, firstNumber > 0 else {
+            print("🐛 调试: 未找到有效数字")
             return nil
         }
         
-        // 4. 找到第一个数字在文本中的位置
+        // 5. 找到第一个数字在文本中的位置
         guard let numberString = findNumberStringInText(searchText, targetNumber: firstNumber) else {
+            print("🐛 调试: 未找到数字字符串")
             return nil
         }
         
         guard let numberRange = searchText.range(of: numberString) else {
+            print("🐛 调试: 未找到数字范围")
             return nil
         }
         
-        // 5. 检查数字后面紧跟的单位（小时或分钟）
+        // 6. 检查数字后面紧跟的单位（小时或分钟）
         let textAfterNumber = String(searchText[numberRange.upperBound...])
         
         if textAfterNumber.hasPrefix("小时") {
             // 计时x小时
             if firstNumber >= 1 && firstNumber <= 12 {
+                print("🐛 调试: 单一小时表达式=\(firstNumber)小时")
                 return firstNumber * 60
             }
         } else if textAfterNumber.hasPrefix("分钟") {
             // 计时x分钟
             if firstNumber >= 1 && firstNumber <= 720 {
+                print("🐛 调试: 单一分钟表达式=\(firstNumber)分钟")
                 return firstNumber
             }
         }
         
+        print("🐛 调试: 无法识别的格式")
         return nil
     }
     
@@ -434,14 +480,18 @@ struct VoiceRecognitionButton: View {
         
         // 在计时部分提取时长
         if timerText.contains("小时") && timerText.contains("分钟") {
+            print("🐛 调试: 进入小时+分钟模式，timerText='\(timerText)'")
             // 提取计时部分的小时数
             if let hours = extractHoursFromTimerText(timerText) {
+                print("🐛 调试: 提取到小时数=\(hours)")
                 totalMinutes += hours * 60
             }
             // 提取计时部分的分钟数（小时后面的分钟）
             if let minutes = extractMinutesAfterHoursInTimerText(timerText) {
+                print("🐛 调试: 提取到分钟数=\(minutes)")
                 totalMinutes += minutes
             }
+            print("🐛 调试: 总分钟数=\(totalMinutes)")
         }
         else if timerText.contains("小时") {
             if let hours = extractHoursFromTimerText(timerText) {
@@ -487,14 +537,18 @@ struct VoiceRecognitionButton: View {
     /// 从计时部分文本中提取小时后面的分钟数
     private func extractMinutesAfterHoursInTimerText(_ timerText: String) -> Int? {
         let numbers = extractNumbers(from: timerText)
+        print("🐛 调试: timerText='\(timerText)', numbers=\(numbers)")
         
         // 查找"分钟"前面的数字，但要在"小时"后面
         if let hourIndex = timerText.range(of: "小时") {
             let textAfterHour = String(timerText[hourIndex.upperBound...])
+            print("🐛 调试: textAfterHour='\(textAfterHour)'")
             
             for number in numbers {
                 if number >= 0 && number <= 59 { // 分钟数应该小于60
+                    print("🐛 调试: 检查number=\(number), contains=\(textAfterHour.contains("\(number)")), 有分钟=\(textAfterHour.contains("分钟"))")
                     if textAfterHour.contains("\(number)") && textAfterHour.contains("分钟") {
+                        print("🐛 调试: 找到分钟数=\(number)")
                         return number
                     }
                     
