@@ -217,7 +217,7 @@ class TimerViewModel: ObservableObject {
         }
         
         // 更新锁屏媒体信息为计时状态
-        updateNowPlayingInfo()
+        // updateNowPlayingInfo() // 禁用锁屏媒体信息更新以降低能耗
         
         // 安排本地通知
         scheduleNotifications()
@@ -241,7 +241,7 @@ class TimerViewModel: ObservableObject {
         }
         
         // 更新锁屏媒体信息为暂停状态
-        updateNowPlayingInfo()
+        // updateNowPlayingInfo() // 禁用锁屏媒体信息更新以降低能耗
         
         // 取消所有通知
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
@@ -310,7 +310,7 @@ class TimerViewModel: ObservableObject {
             remainingSeconds = Int(remaining)
             
             // 更新锁屏媒体信息
-            updateNowPlayingInfo()
+            // updateNowPlayingInfo() // 禁用锁屏媒体信息更新以降低能耗
             
             checkForReminders()
             
@@ -670,7 +670,7 @@ class TimerViewModel: ObservableObject {
             // 立即设置到系统（确保同步更新）
             DispatchQueue.main.async {
                 MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
-                self.logger.info("🎵 成功更新锁屏媒体信息: \(title) - 播放率: \(playbackRate)")
+                // self.logger.info("🎵 成功更新锁屏媒体信息: \(title) - 播放率: \(playbackRate)")
             }
         } else {
             // 没有计时任务时清除锁屏信息
