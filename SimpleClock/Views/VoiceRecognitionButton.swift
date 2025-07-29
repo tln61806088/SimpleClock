@@ -287,7 +287,7 @@ struct VoiceRecognitionButton: View {
             
             // 查找小时数（在"小时"之前的数字）
             for number in numbers {
-                if let hourIndex = searchText.range(of: "\(number)小时") {
+                if searchText.range(of: "\(number)小时") != nil {
                     // print("🐛 调试: 找到小时数=\(number)")
                     totalMinutes += number * 60
                     break

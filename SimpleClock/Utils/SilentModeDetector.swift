@@ -50,9 +50,8 @@ class SilentModeDetector: ObservableObject {
         let currentRoute = audioSession.currentRoute
         let hasAudioOutput = !currentRoute.outputs.isEmpty
         
-        // 只有当系统音量为0时才认为是静音
-        // 不再使用复杂的音频播放检测，因为会干扰正常播放
-        let detectedSilent = (systemVolume == 0.0)
+        // 综合判断：系统音量为0或没有音频输出路由时认为是静音
+        let detectedSilent = (systemVolume == 0.0) || !hasAudioOutput
         
         // logger.info("静音检测 - 系统音量: \(systemVolume), 有音频输出: \(hasAudioOutput), 检测结果: \(detectedSilent ? "静音" : "非静音")")
         
