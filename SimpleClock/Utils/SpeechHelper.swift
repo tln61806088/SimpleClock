@@ -173,7 +173,7 @@ class SpeechHelper: NSObject, @unchecked Sendable {
         speak(text)
     }
     
-    /// 播报剩余时间
+    /// 播报剩余时长
     /// - Parameter remainingSeconds: 剩余秒数
     func speakRemainingTime(remainingSeconds: Int) {
         let hours = remainingSeconds / 3600
@@ -181,7 +181,7 @@ class SpeechHelper: NSObject, @unchecked Sendable {
         // 向上取整分钟数，如果有任何秒数都算作1分钟
         let minutes = (remainingSecondsAfterHours + 59) / 60
         
-        var text = "剩余时间"
+        var text = "剩余时长"
         if hours > 0 {
             text += "\(hours)小时"
         }

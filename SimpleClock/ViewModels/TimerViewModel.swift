@@ -245,8 +245,8 @@ class TimerViewModel: ObservableObject {
         pausedTime = 0
         lastReminderMinute = -1
         
-        // 结束计时后，重置为当前设置的计时时长
-        remainingSeconds = settings.duration * 60
+        // 结束计时后，清空计时任务，显示时钟
+        remainingSeconds = 0
         
         // 清除锁屏媒体信息
         nowPlayingManager.clearNowPlayingInfo()
@@ -316,7 +316,7 @@ class TimerViewModel: ObservableObject {
         // 间隔提醒（只有当间隔不为0时才提醒）
         if settings.interval > 0 && remainingMinutes > 0 && remainingMinutes % settings.interval == 0 && lastReminderMinute != remainingMinutes {
             lastReminderMinute = remainingMinutes
-            let message = "剩余时间\(remainingMinutes)分钟"
+            let message = "剩余时长\(remainingMinutes)分钟"
             SpeechHelper.shared.speak(message)
         }
         
@@ -387,7 +387,7 @@ class TimerViewModel: ObservableObject {
                     scheduleNotification(
                         at: nextReminderTime,
                         title: "计时提醒",
-                        body: "剩余时间\(remainingMinutes)分钟",
+                        body: "剩余时长\(remainingMinutes)分钟",
                         identifier: "reminder_\(remainingMinutes)"
                     )
                 }

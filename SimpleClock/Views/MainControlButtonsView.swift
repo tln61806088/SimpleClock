@@ -92,7 +92,20 @@ struct MainControlButtonsView: View {
             SpeechHelper.shared.speakTimerAction("暂停计时")
         } else {
             viewModel.startTimer()
-            SpeechHelper.shared.speakTimerAction("开始计时")
+            // 播报开始计时和剩余时长，使用连贯的播报
+            let hours = viewModel.remainingSeconds / 3600
+            let remainingSecondsAfterHours = viewModel.remainingSeconds % 3600
+            let minutes = (remainingSecondsAfterHours + 59) / 60
+            
+            var message = "开始计时，剩余时长"
+            if hours > 0 {
+                message += "\(hours)小时"
+            }
+            if minutes > 0 || hours == 0 {
+                message += "\(minutes)分钟"
+            }
+            
+            SpeechHelper.shared.speak(message)
         }
     }
     
@@ -100,13 +113,13 @@ struct MainControlButtonsView: View {
     private func handleRemainingTime() {
         HapticHelper.shared.lightImpact()
         
-        if viewModel.remainingSeconds == 0 && !viewModel.isRunning {
-            // 未开始计时时，播报设置的计时时长
-            let message = "当前尚未开始计时，设置的计时时长为\(viewModel.settings.duration)分钟"
-            SpeechHelper.shared.speak(message)
-        } else {
-            // 已开始计时，播报剩余时间
+        if viewModel.remainingSeconds > 0 {
+            // 有计时任务运行时，播报剩余时间
             SpeechHelper.shared.speakRemainingTime(remainingSeconds: viewModel.remainingSeconds)
+        } else {
+            // 无计时任务时，播报状态
+            let message = "当前无计时任务"
+            SpeechHelper.shared.speak(message)
         }
     }
     

@@ -21,9 +21,9 @@ struct HomeView: View {
                     VStack(spacing: DesignSystem.Spacing.large) {
                         // 自定义导航栏
                         HStack {
-                            // 左侧颜色选择器按钮（只显示按钮）
-                            ColorThemeToggleButton()
-                                .environmentObject(colorThemeState)
+                            // 临时隐藏主题选择按钮 - 免费版本暂时只提供基础黑色主题
+                            // ColorThemeToggleButton()
+                            //     .environmentObject(colorThemeState)
                             
                             Spacer()
                             
@@ -42,8 +42,8 @@ struct HomeView: View {
                             
                             Spacer()
                             
-                            // 右侧占位（保持居中对称）
-                            Color.clear.frame(width: DesignSystem.Sizes.labelIcon + 2, height: DesignSystem.Sizes.labelIcon + 2)
+                            // 移除右侧占位，因为左侧已经没有按钮了
+                            // Color.clear.frame(width: DesignSystem.Sizes.labelIcon + 2, height: DesignSystem.Sizes.labelIcon + 2)
                         }
                         
                         // 时钟显示区域
@@ -79,9 +79,9 @@ struct HomeView: View {
                 }
                 .background(DesignSystem.Colors.backgroundGradient.ignoresSafeArea())
                 
-                // 颜色选择面板覆盖层
-                ColorThemeOverlay()
-                    .environmentObject(colorThemeState)
+                // 临时隐藏颜色选择面板 - 免费版本暂时不提供主题选择
+                // ColorThemeOverlay()
+                //     .environmentObject(colorThemeState)
             }
         }
         .onAppear {

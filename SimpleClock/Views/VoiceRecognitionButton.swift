@@ -229,7 +229,7 @@ struct VoiceRecognitionButton: View {
             return .speakTime
         }
         
-        if text == "剩余时间" || (containsAny(lowercaseText, keywords: ["剩余", "还有", "剩下"]) && containsAny(lowercaseText, keywords: ["时间", "多久"])) {
+        if text == "剩余时间" || text == "剩余时长" || text == "剩余" || (containsAny(lowercaseText, keywords: ["剩余", "还有", "剩下"]) && containsAny(lowercaseText, keywords: ["时间", "时长", "多久"])) {
             return .speakRemainingTime
         }
         
@@ -862,16 +862,18 @@ struct VoiceRecognitionButton: View {
             }
             
         case .speakRemainingTime:
-            // 剩余时间播报
-            if viewModel.remainingSeconds == 0 && !viewModel.isRunning {
-                let message = "设置的计时时长为\(viewModel.settings.duration)分钟"
-                speakConfirmationOnly(message)
-            } else {
+            // 剩余时长播报 - 与按钮逻辑保持一致
+            if viewModel.remainingSeconds > 0 {
+                // 有计时任务运行时，播报剩余时长
                 speakConfirmationOnly("")
                 SpeechHelper.shared.speakRemainingTime(remainingSeconds: viewModel.remainingSeconds)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                     resumeBackgroundAudioIfNeeded()
                 }
+            } else {
+                // 无计时任务时，播报状态
+                let message = "当前无计时任务"
+                speakConfirmationOnly(message)
             }
             
         case .setTimer(let duration):
