@@ -1088,6 +1088,8 @@ struct VoiceRecognitionButton: View {
             }
             var newSettings = viewModel.settings
             newSettings.duration = duration
+            // 语音识别只说计时时长，没有提到间隔，意味着不需要提醒
+            newSettings.interval = 0
             viewModel.updateSettings(newSettings)
             viewModel.startTimer(saveSettings: false)  // 语音识别不保存设置
             

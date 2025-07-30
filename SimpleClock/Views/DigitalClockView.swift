@@ -44,7 +44,7 @@ struct DigitalClockView: View {
                    x: DesignSystem.Shadows.largeSecondaryShadow.x,
                    y: DesignSystem.Shadows.largeSecondaryShadow.y)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .timerTick)) { _ in
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             currentTime = Date()
             updateCachedStringsSelectively()
         }

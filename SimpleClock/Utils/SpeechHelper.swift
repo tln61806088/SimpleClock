@@ -92,11 +92,26 @@ class SpeechHelper: NSObject, @unchecked Sendable {
     
     // 已移除后台任务管理函数，由PermissionManager统一处理
     
-    /// 检测设备是否处于静音状态（按需检测）
+    // 静音状态缓存，避免频繁检测
+    private var lastSilentCheckTime: Date = Date.distantPast
+    private var cachedSilentMode: Bool = false
+    private let silentCheckCooldown: TimeInterval = 2.0  // 2秒内不重复检测
+    
+    /// 检测设备是否处于静音状态（缓存机制避免频繁检测）
     private func isSilentModeEnabled() -> Bool {
-        // 在真正需要播报时才检测静音状态，避免持续后台检测
+        let now = Date()
+        
+        // 如果距离上次检测不超过2秒，使用缓存结果
+        if now.timeIntervalSince(lastSilentCheckTime) < silentCheckCooldown {
+            return cachedSilentMode
+        }
+        
+        // 执行检测并更新缓存
         SilentModeDetector.shared.checkSilentModeNow()
-        return SilentModeDetector.shared.isSilentMode
+        cachedSilentMode = SilentModeDetector.shared.isSilentMode
+        lastSilentCheckTime = now
+        
+        return cachedSilentMode
     }
     
     /// 为锁屏状态配置音频会话
@@ -223,6 +238,10 @@ class SpeechHelper: NSObject, @unchecked Sendable {
         }
         
         logger.info("静音状态变化通知: \(isSilent ? "静音" : "非静音")")
+        
+        // 立即更新缓存状态
+        cachedSilentMode = isSilent
+        lastSilentCheckTime = Date()
         
         if isSilent && isCurrentlySpeaking {
             // 切换到静音时，停止当前播报

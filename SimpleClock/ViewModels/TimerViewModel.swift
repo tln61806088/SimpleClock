@@ -5,10 +5,7 @@ import UIKit
 import MediaPlayer
 import os.log
 
-// MARK: - Timer Notification Extension
-extension Notification.Name {
-    static let timerTick = Notification.Name("timerTick")
-}
+// MARK: - Timer Notification Extension (已移除高频timerTick通知以降低能耗)
 
 /// 计时器视图模型，管理计时状态和提醒逻辑，支持后台运行
 class TimerViewModel: ObservableObject {
@@ -411,8 +408,8 @@ class TimerViewModel: ObservableObject {
         let totalDuration = TimeInterval(settings.duration * 60)
         let remaining = totalDuration - elapsed
         
-        // 发送UI更新通知，让DigitalClockView更新显示
-        NotificationCenter.default.post(name: .timerTick, object: nil)
+        // 移除NotificationCenter通知，直接更新@Published属性触发UI更新
+        // NotificationCenter.default.post(name: .timerTick, object: nil)
         
         if remaining <= 0 {
             // 计时结束
@@ -520,6 +517,11 @@ class TimerViewModel: ObservableObject {
     
     /// 高效提醒检查 - 只在即将到达时检查，保持功能100%不变
     private func checkForRemindersOptimized() {
+        // 如果用户设置了"不提醒"（interval=0），直接返回，绝不提醒
+        guard settings.interval > 0 else {
+            return
+        }
+        
         let remainingMinutes = (remainingSeconds + 59) / 60
         
         // 只在预计的提醒时间点检查 - 大幅优化效率
