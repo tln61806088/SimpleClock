@@ -3,7 +3,7 @@ import SwiftUI
 struct DigitalClockView: View {
     @ObservedObject private var themeManager = ThemeManager.shared
     @State private var currentTime = Date()
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    // Timer优化：使用TimerViewModel的统一Timer，通过NotificationCenter通知更新
     
     // 性能优化：分级重绘缓存，只有变化时才更新
     @State private var cachedHour = ""
@@ -44,8 +44,8 @@ struct DigitalClockView: View {
                    x: DesignSystem.Shadows.largeSecondaryShadow.x,
                    y: DesignSystem.Shadows.largeSecondaryShadow.y)
         }
-        .onReceive(timer) { input in
-            currentTime = input
+        .onReceive(NotificationCenter.default.publisher(for: .timerTick)) { _ in
+            currentTime = Date()
             updateCachedStringsSelectively()
         }
         .onAppear {
