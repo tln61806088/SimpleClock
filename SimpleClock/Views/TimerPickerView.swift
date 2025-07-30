@@ -23,11 +23,12 @@ struct TimerPickerView: View {
     }
     
     var body: some View {
-        VStack(spacing: DesignSystem.Spacing.medium + 4) {
-            // 选择器区域
-            HStack(spacing: DesignSystem.Spacing.pickerSpacing) {
-                // 左侧：计时时长选择器
-                VStack(alignment: .center, spacing: DesignSystem.Spacing.small + 4) {
+        GeometryReader { geometry in
+            VStack(spacing: DesignSystem.Spacing.medium + 4) {
+                // 选择器区域
+                HStack(spacing: DesignSystem.Spacing.pickerSpacing) {
+                    // 左侧：计时时长选择器
+                    VStack(alignment: .center, spacing: DesignSystem.Spacing.small + 4) {
                     HStack(spacing: DesignSystem.Spacing.labelSpacing) {
                         Image(systemName: "clock.fill")
                             .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelIcon))
@@ -63,7 +64,7 @@ struct TimerPickerView: View {
                         }
                     }
                     .pickerStyle(.wheel)
-                    .frame(height: 100)
+                    .frame(width: calculatePickerWidth(geometry: geometry), height: 100)
                     .disabled(!isEnabled)
                     .opacity(isEnabled ? 1.0 : 0.6)
                     .background(
@@ -117,7 +118,7 @@ struct TimerPickerView: View {
                         }
                     }
                     .pickerStyle(.wheel)
-                    .frame(height: 100)
+                    .frame(width: calculatePickerWidth(geometry: geometry), height: 100)
                     .disabled(!isEnabled)
                     .opacity(isEnabled ? 1.0 : 0.6)
                     .background(
@@ -133,6 +134,7 @@ struct TimerPickerView: View {
                     .accessibilityLabel("提醒间隔选择器")
                     .accessibilityHint("滑动选择提醒间隔")
                 }
+            }
             }
         }
         .onAppear {
@@ -154,6 +156,21 @@ struct TimerPickerView: View {
             speakTimer?.invalidate()
             speakTimer = nil
         }
+    }
+    
+    /// 计算Picker宽度，确保在小屏幕上适应
+    private func calculatePickerWidth(geometry: GeometryProxy) -> CGFloat {
+        // 可用宽度 = 总宽度 - 水平padding - picker间距
+        let horizontalPadding = (DesignSystem.Spacing.medium + 4) * 2 // 左右padding
+        let pickerSpacing = DesignSystem.Spacing.pickerSpacing
+        let availableWidth = geometry.size.width - horizontalPadding - pickerSpacing
+        
+        // 每个picker占用一半宽度
+        let pickerWidth = availableWidth / 2
+        
+        // 确保最小宽度，防止过小
+        let minWidth: CGFloat = 120 * DesignSystem.Sizes.scale
+        return max(pickerWidth, minWidth)
     }
     
     /// 处理计时时长变化

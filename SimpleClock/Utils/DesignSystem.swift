@@ -496,93 +496,246 @@ struct DesignSystem {
     
     /// 尺寸定义
     struct Sizes {
-        /// 时钟数字大小
-        static let clockDigit: CGFloat = 72
+        // MARK: - 等比例自适应系统（基于iPhone 15 Pro设计）
         
-        /// 冒号大小
-        static let colon: CGFloat = 50
+        /// iPhone 15 Pro基准尺寸
+        private static let baseScreenWidth: CGFloat = 393.0    // iPhone 15 Pro宽度
+        private static let baseScreenHeight: CGFloat = 852.0   // iPhone 15 Pro高度
         
-        /// 按钮图标大小
-        static let buttonIcon: CGFloat = 24
+        /// 当前屏幕尺寸
+        private static var screenWidth: CGFloat {
+            UIScreen.main.bounds.width
+        }
         
-        /// 按钮文字大小
-        static let buttonText: CGFloat = 16
+        private static var screenHeight: CGFloat {
+            UIScreen.main.bounds.height
+        }
         
-        /// 标题文字大小
-        static let titleText: CGFloat = 20
+        /// 宽度缩放比例
+        private static var widthScale: CGFloat {
+            screenWidth / baseScreenWidth
+        }
         
-        /// 选择器文字大小
-        static let pickerText: CGFloat = 18
+        /// 高度缩放比例  
+        private static var heightScale: CGFloat {
+            screenHeight / baseScreenHeight
+        }
         
-        /// 标签文字大小
-        static let labelText: CGFloat = 16
+        /// 综合缩放比例（取宽高缩放的平均值，确保比例协调）
+        static var scale: CGFloat {
+            min(widthScale, heightScale) // 使用较小的缩放比例，避免内容溢出
+        }
         
-        /// 标签图标大小
-        static let labelIcon: CGFloat = 14
+        // MARK: - iPhone 15 Pro基准尺寸定义
         
-        /// 语音识别按钮高度
-        static let voiceButtonHeight: CGFloat = 157.5
+        /// 基准时钟数字大小
+        private static let baseClockDigit: CGFloat = 72
         
-        /// 主控制按钮高度
-        static let mainButtonHeight: CGFloat = 90
+        /// 基准按钮图标大小
+        private static let baseButtonIcon: CGFloat = 24
         
-        /// 语音图标背景圆形大小
-        static let voiceIconBackground: CGFloat = 60
+        /// 基准按钮文字大小
+        private static let baseButtonText: CGFloat = 16
         
-        /// 语音图标大小
-        static let voiceIcon: CGFloat = 28
+        /// 基准标题文字大小
+        private static let baseTitleText: CGFloat = 20
         
-        /// 语音状态文字大小
-        static let voiceStateText: CGFloat = 18
+        /// 基准选择器文字大小
+        private static let basePickerText: CGFloat = 18
+        
+        /// 基准标签文字大小
+        private static let baseLabelText: CGFloat = 16
+        
+        /// 基准标签图标大小
+        private static let baseLabelIcon: CGFloat = 14
+        
+        /// 基准语音识别按钮高度
+        private static let baseVoiceButtonHeight: CGFloat = 157.5
+        
+        /// 基准主控制按钮高度
+        private static let baseMainButtonHeight: CGFloat = 90
+        
+        /// 基准语音图标背景圆形大小
+        private static let baseVoiceIconBackground: CGFloat = 60
+        
+        /// 基准语音状态文字大小
+        private static let baseVoiceStateText: CGFloat = 18
+        
+        // MARK: - 等比例缩放的动态尺寸
+        
+        /// 时钟数字大小（等比例缩放）
+        static var clockDigit: CGFloat {
+            baseClockDigit * scale
+        }
+        
+        /// 冒号大小（等比例缩放）
+        static var colon: CGFloat {
+            clockDigit * 0.7 // 相对于时钟数字的70%
+        }
+        
+        /// 按钮图标大小（等比例缩放）
+        static var buttonIcon: CGFloat {
+            baseButtonIcon * scale
+        }
+        
+        /// 按钮文字大小（等比例缩放）
+        static var buttonText: CGFloat {
+            baseButtonText * scale
+        }
+        
+        /// 标题文字大小（等比例缩放）
+        static var titleText: CGFloat {
+            baseTitleText * scale
+        }
+        
+        /// 选择器文字大小（等比例缩放）
+        static var pickerText: CGFloat {
+            basePickerText * scale
+        }
+        
+        /// 标签文字大小（等比例缩放）
+        static var labelText: CGFloat {
+            baseLabelText * scale
+        }
+        
+        /// 标签图标大小（等比例缩放）
+        static var labelIcon: CGFloat {
+            baseLabelIcon * scale
+        }
+        
+        /// 语音识别按钮高度（等比例缩放）
+        static var voiceButtonHeight: CGFloat {
+            baseVoiceButtonHeight * scale
+        }
+        
+        /// 主控制按钮高度（等比例缩放）
+        static var mainButtonHeight: CGFloat {
+            baseMainButtonHeight * scale
+        }
+        
+        /// 语音图标背景圆形大小（等比例缩放）
+        static var voiceIconBackground: CGFloat {
+            baseVoiceIconBackground * scale
+        }
+        
+        /// 语音图标大小（等比例缩放）
+        static var voiceIcon: CGFloat {
+            voiceIconBackground * 0.47 // 相对于背景圆形的47%
+        }
+        
+        /// 语音状态文字大小（等比例缩放）
+        static var voiceStateText: CGFloat {
+            baseVoiceStateText * scale
+        }
+        
+        // MARK: - 调试信息
+        
+        /// 获取当前缩放信息（用于调试）
+        static var debugScaleInfo: String {
+            return """
+            屏幕尺寸: \(Int(screenWidth))×\(Int(screenHeight))
+            基准尺寸: \(Int(baseScreenWidth))×\(Int(baseScreenHeight))
+            宽度缩放: \(String(format: "%.2f", widthScale))
+            高度缩放: \(String(format: "%.2f", heightScale))
+            最终缩放: \(String(format: "%.2f", scale))
+            """
+        }
     }
     
     // MARK: - 间距系统
     
-    /// 间距定义
+    /// 间距定义（等比例缩放）
     struct Spacing {
-        /// 极小间距
-        static let tiny: CGFloat = 2
+        // MARK: - iPhone 15 Pro基准间距
+        private static let baseTiny: CGFloat = 2
+        private static let baseSmall: CGFloat = 8
+        private static let baseMedium: CGFloat = 16
+        private static let baseLarge: CGFloat = 32
+        private static let baseClockDigitSpacing: CGFloat = 2
+        private static let baseButtonSpacing: CGFloat = 16
+        private static let basePickerSpacing: CGFloat = 32
+        private static let baseLabelSpacing: CGFloat = 6
+        private static let baseIconTextSpacing: CGFloat = 10
+        private static let baseVoiceButtonInternalSpacing: CGFloat = 12
         
-        /// 小间距
-        static let small: CGFloat = 8
+        // MARK: - 等比例缩放的间距
         
-        /// 中间距
-        static let medium: CGFloat = 16
+        /// 极小间距（等比例缩放）
+        static var tiny: CGFloat {
+            baseTiny * Sizes.scale
+        }
         
-        /// 大间距
-        static let large: CGFloat = 32
+        /// 小间距（等比例缩放）
+        static var small: CGFloat {
+            baseSmall * Sizes.scale
+        }
         
-        /// 时钟数字间距（冒号padding）
-        static let clockDigitSpacing: CGFloat = 2
+        /// 中间距（等比例缩放）
+        static var medium: CGFloat {
+            baseMedium * Sizes.scale
+        }
         
-        /// 按钮间距
-        static let buttonSpacing: CGFloat = 16
+        /// 大间距（等比例缩放）
+        static var large: CGFloat {
+            baseLarge * Sizes.scale
+        }
         
-        /// 选择器间距
-        static let pickerSpacing: CGFloat = 32
+        /// 时钟数字间距（等比例缩放）
+        static var clockDigitSpacing: CGFloat {
+            baseClockDigitSpacing * Sizes.scale
+        }
         
-        /// 标签间距
-        static let labelSpacing: CGFloat = 6
+        /// 按钮间距（等比例缩放）
+        static var buttonSpacing: CGFloat {
+            baseButtonSpacing * Sizes.scale
+        }
         
-        /// 图标和文字间距
-        static let iconTextSpacing: CGFloat = 10
+        /// 选择器间距（等比例缩放）
+        static var pickerSpacing: CGFloat {
+            basePickerSpacing * Sizes.scale
+        }
         
-        /// 语音按钮内部间距
-        static let voiceButtonInternalSpacing: CGFloat = 12
+        /// 标签间距（等比例缩放）
+        static var labelSpacing: CGFloat {
+            baseLabelSpacing * Sizes.scale
+        }
+        
+        /// 图标和文字间距（等比例缩放）
+        static var iconTextSpacing: CGFloat {
+            baseIconTextSpacing * Sizes.scale
+        }
+        
+        /// 语音按钮内部间距（等比例缩放）
+        static var voiceButtonInternalSpacing: CGFloat {
+            baseVoiceButtonInternalSpacing * Sizes.scale
+        }
     }
     
     // MARK: - 圆角系统
     
-    /// 圆角定义
+    /// 圆角定义（等比例缩放）
     struct CornerRadius {
-        /// 按钮圆角
-        static let button: CGFloat = 16
+        // MARK: - iPhone 15 Pro基准圆角
+        private static let baseButton: CGFloat = 16
+        private static let baseVoiceButton: CGFloat = 24
+        private static let basePickerBackground: CGFloat = 12
         
-        /// 语音按钮圆角
-        static let voiceButton: CGFloat = 24
+        // MARK: - 等比例缩放的圆角
         
-        /// 选择器背景圆角
-        static let pickerBackground: CGFloat = 12
+        /// 按钮圆角（等比例缩放）
+        static var button: CGFloat {
+            baseButton * Sizes.scale
+        }
+        
+        /// 语音按钮圆角（等比例缩放）
+        static var voiceButton: CGFloat {
+            baseVoiceButton * Sizes.scale
+        }
+        
+        /// 选择器背景圆角（等比例缩放）
+        static var pickerBackground: CGFloat {
+            basePickerBackground * Sizes.scale
+        }
     }
 }
 
