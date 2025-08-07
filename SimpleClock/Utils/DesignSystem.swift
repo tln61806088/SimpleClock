@@ -384,7 +384,7 @@ struct DesignSystem {
     struct Fonts {
         /// 时钟数字字体
         static func clockDigit(size: CGFloat) -> Font {
-            .system(size: size, weight: .ultraLight, design: .monospaced)
+            .system(size: size, weight: .bold, design: .monospaced)
         }
         
         /// 按钮文字字体

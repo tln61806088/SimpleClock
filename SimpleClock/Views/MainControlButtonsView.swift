@@ -44,7 +44,7 @@ struct MainControlButtonsView: View {
                 // 语音识别按钮
                 VoiceRecognitionButton(viewModel: viewModel)
             }
-            .padding(.top, DesignSystem.Spacing.buttonSpacing)
+.padding(.top, calculateDynamicTopPaddingWithSpacing())
             .onAppear {
                 // 初始化按钮状态
                 updateButtonState()
@@ -82,6 +82,40 @@ struct MainControlButtonsView: View {
         }
         if cachedButtonIcon != newIcon {
             cachedButtonIcon = newIcon
+        }
+    }
+    
+/// 根据屏幕高度动态计算顶部间距
+    private func calculateDynamicTopPadding() -> CGFloat {
+        let screenHeight = UIScreen.main.bounds.height
+        let baseSpacing = DesignSystem.Spacing.buttonSpacing
+        
+        // 根据屏幕高度调整额外间距
+        if screenHeight <= 667 { // iPhone 6s/SE 等小屏幕 - 不增加额外间距
+            return baseSpacing
+        } else if screenHeight <= 736 { // iPhone 6 Plus等中屏幕 - 少量增加
+            return baseSpacing + DesignSystem.Spacing.small // 增加8点
+        } else if screenHeight <= 812 { // iPhone X等中大屏幕
+            return baseSpacing + DesignSystem.Spacing.small + 4 // 增加12点
+        } else { // 大屏幕设备 (iPhone 15 Pro等)
+            return baseSpacing + DesignSystem.Spacing.medium // 增加16点
+        }
+    }
+    
+    /// 根据屏幕高度动态计算顶部间距（包含滚轮间距）
+    private func calculateDynamicTopPaddingWithSpacing() -> CGFloat {
+        let screenHeight = UIScreen.main.bounds.height
+        let baseSpacing = DesignSystem.Spacing.buttonSpacing
+        
+        // 根据屏幕高度调整额外间距，并为滚轮间距做优化
+        if screenHeight <= 667 { // iPhone 6s/SE 等小屏幕 - 只增加少量间距
+            return baseSpacing + 8  // 小屏幕只加8点，避免挤压
+        } else if screenHeight <= 736 { // iPhone 6 Plus等中屏幕
+            return baseSpacing + DesignSystem.Spacing.small + 8 // 增加16点
+        } else if screenHeight <= 812 { // iPhone X等中大屏幕
+            return baseSpacing + DesignSystem.Spacing.small + 12 // 增加20点
+        } else { // 大屏幕设备 (iPhone 15 Pro等)
+            return baseSpacing + DesignSystem.Spacing.medium + 16 // 增加32点，确保有足够间距
         }
     }
     

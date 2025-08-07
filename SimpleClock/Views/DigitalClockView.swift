@@ -35,14 +35,7 @@ struct DigitalClockView: View {
                 // 秒（使用缓存，减少重绘）
                 TimeDigitView(text: cachedSecond, size: DesignSystem.Sizes.clockDigit)
             }
-            .shadow(color: DesignSystem.Shadows.largePrimaryShadow.color, 
-                   radius: DesignSystem.Shadows.largePrimaryShadow.radius,
-                   x: DesignSystem.Shadows.largePrimaryShadow.x,
-                   y: DesignSystem.Shadows.largePrimaryShadow.y)
-            .shadow(color: DesignSystem.Shadows.largeSecondaryShadow.color,
-                   radius: DesignSystem.Shadows.largeSecondaryShadow.radius,
-                   x: DesignSystem.Shadows.largeSecondaryShadow.x,
-                   y: DesignSystem.Shadows.largeSecondaryShadow.y)
+
         }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             currentTime = Date()
@@ -151,14 +144,7 @@ struct TimeDigitView: View {
                     .font(DesignSystem.Fonts.clockDigit(size: size))
                     .foregroundStyle(themeManager.currentTheme.primaryGradient)
             )
-            .shadow(color: DesignSystem.Shadows.clockDigitShadow.color,
-                   radius: DesignSystem.Shadows.clockDigitShadow.radius,
-                   x: DesignSystem.Shadows.clockDigitShadow.x,
-                   y: DesignSystem.Shadows.clockDigitShadow.y)
-            .shadow(color: DesignSystem.Shadows.clockDigitSecondaryShadow.color,
-                   radius: DesignSystem.Shadows.clockDigitSecondaryShadow.radius,
-                   x: DesignSystem.Shadows.clockDigitSecondaryShadow.x,
-                   y: DesignSystem.Shadows.clockDigitSecondaryShadow.y)
+
             .fixedSize()
     }
 }

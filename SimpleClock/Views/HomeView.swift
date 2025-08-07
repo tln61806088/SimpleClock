@@ -39,7 +39,7 @@ struct HomeView: View {
                             Spacer()
                             
                             // 中央标题（使用缓存渐变）
-                            Text("极简语音计时")
+                            Text("无障碍计时器")
                                 .font(DesignSystem.Fonts.title(size: DesignSystem.Sizes.titleText))
                                 .foregroundStyle(cachedPrimaryGradient)
                                 .shadow(color: cachedPrimaryShadow.color,
@@ -73,12 +73,13 @@ struct HomeView: View {
                             .onChange(of: timerSettings) { newSettings in
                                 timerViewModel.updateSettings(newSettings)
                             }
+
                     }
                     .padding(.horizontal, DesignSystem.Spacing.medium + 4)
                     .padding(.top, DesignSystem.Spacing.small + 4)
                     
                     // 中间弹性空白区域
-                    Spacer(minLength: DesignSystem.Spacing.medium + 4)
+                    Spacer(minLength: DesignSystem.Spacing.small)
                     
                     // 底部按钮区 - 固定在底部，响应式高度
                     VStack(spacing: 0) {
@@ -86,7 +87,7 @@ struct HomeView: View {
                             .frame(height: calculateButtonAreaHeight(for: geometry), alignment: .top)
                     }
                     .padding(.horizontal, DesignSystem.Spacing.medium + 4)
-                    .padding(.bottom, geometry.safeAreaInsets.bottom + DesignSystem.Spacing.medium + 4)
+.padding(.bottom, max(geometry.safeAreaInsets.bottom, 16 * DesignSystem.Sizes.scale))
                 }
                 .background(cachedBackgroundGradient.ignoresSafeArea())
                 
@@ -121,18 +122,37 @@ struct HomeView: View {
         }
     }
     
-    /// 计算按钮区域高度，根据设备尺寸自动适应
+/// 计算按钮区域高度，根据设备尺寸自动适应
     private func calculateButtonAreaHeight(for geometry: GeometryProxy) -> CGFloat {
-        let _ = geometry.size.height
+        // 使用DesignSystem中定义的高度（已自动等比例缩放）
+        let voiceButtonHeight = DesignSystem.Sizes.voiceButtonHeight * 0.75 // 与MainControlButtonsView一致
+        let mainButtonHeight = DesignSystem.Sizes.voiceButtonHeight * 0.75   // 与MainControlButtonsView一致
         
-        // 使用DesignSystem中定义的高度
-        let voiceButtonHeight = DesignSystem.Sizes.voiceButtonHeight
-        let mainButtonHeight = DesignSystem.Sizes.mainButtonHeight
-        // 两行主控制按钮 + 一行语音识别按钮 + 间距
-        let totalHeight = (mainButtonHeight * 2) + voiceButtonHeight + (DesignSystem.Spacing.buttonSpacing * 2)
+        // 计算动态顶部间距（与MainControlButtonsView保持一致）
+        let dynamicTopPadding = calculateDynamicTopPadding(screenHeight: geometry.size.height)
         
-        // 精确计算，不设置最小高度强制要求
+        // 按钮间距
+        let buttonSpacing = DesignSystem.Spacing.buttonSpacing
+        
+        // 总高度 = 动态顶部间距 + 两个主按钮 + 一个语音按钮 + 按钮之间的间距
+        let totalHeight = dynamicTopPadding + (mainButtonHeight * 2) + voiceButtonHeight + (buttonSpacing * 2)
+        
         return totalHeight
+    }
+    
+    /// 根据屏幕高度动态计算顶部间距（与MainControlButtonsView保持一致）
+    private func calculateDynamicTopPadding(screenHeight: CGFloat) -> CGFloat {
+        let baseSpacing = DesignSystem.Spacing.buttonSpacing
+        
+        if screenHeight <= 667 { // iPhone 6s/SE 等小屏幕
+            return baseSpacing
+        } else if screenHeight <= 736 { // iPhone 6 Plus等中屏幕
+            return baseSpacing + DesignSystem.Spacing.small // 增加8点
+        } else if screenHeight <= 812 { // iPhone X等中大屏幕
+            return baseSpacing + DesignSystem.Spacing.small + 4 // 增加12点
+        } else { // 大屏幕设备 (iPhone 15 Pro等)
+            return baseSpacing + DesignSystem.Spacing.medium // 增加16点
+        }
     }
     
     // 时钟显示区域

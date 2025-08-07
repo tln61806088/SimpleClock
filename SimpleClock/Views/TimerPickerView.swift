@@ -140,8 +140,8 @@ struct TimerPickerView: View {
                 .frame(maxWidth: .infinity) // 确保HStack使用全宽
                 .multilineTextAlignment(.center) // 确保文本居中对齐
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity) // 确保VStack使用全宽全高
-            .position(x: geometry.size.width / 2, y: geometry.size.height / 2) // 完全居中定位
+            .frame(maxWidth: .infinity, alignment: .center) // VStack使用全宽并居中对齐
+            .clipped() // 防止内容溢出
         }
         .onAppear {
             // 初始化时播报当前设置
@@ -164,18 +164,20 @@ struct TimerPickerView: View {
         }
     }
     
-    /// 计算Picker宽度，确保在小屏幕上适应
+    /// 计算Picker宽度，与底部按钮宽度对齐
     private func calculatePickerWidth(geometry: GeometryProxy) -> CGFloat {
-        // 可用宽度 = 总宽度 - 水平padding - picker间距
-        let horizontalPadding = (DesignSystem.Spacing.medium + 4) * 2 // 左右padding
+        // GeometryReader已经在TimerPickerView的容器内，geometry.size.width就是可用宽度
+        // 这个宽度已经减去了HomeView中设置的.padding(.horizontal, DesignSystem.Spacing.medium + 4)
+        
+        // 两个滚轮之间的间距
         let pickerSpacing = DesignSystem.Spacing.pickerSpacing
-        let availableWidth = geometry.size.width - horizontalPadding - pickerSpacing
         
-        // 每个picker占用一半宽度
-        let pickerWidth = availableWidth / 2
+        // 每个picker的可用宽度 = (可用总宽度 - 间距) / 2
+        // 让滚轮宽度更大，接近底部按钮的宽度
+        let pickerWidth = (geometry.size.width - pickerSpacing) / 2
         
-        // 确保最小宽度，防止过小
-        let minWidth: CGFloat = 120 * DesignSystem.Sizes.scale
+        // 设置更合理的最小宽度
+        let minWidth: CGFloat = 140 * DesignSystem.Sizes.scale
         return max(pickerWidth, minWidth)
     }
     

@@ -3,12 +3,20 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>极简语音计时</string>
+	<string>无障碍计时器</string>
 	<key>CFBundleName</key>
-	<string>极简语音计时</string>
+	<string>无障碍计时器</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
 	</array>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>zh-Hans</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>zh-Hans</string>
+	</array>
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
 </dict>
 </plist>
