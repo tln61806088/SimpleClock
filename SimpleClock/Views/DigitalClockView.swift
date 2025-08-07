@@ -61,6 +61,7 @@ struct DigitalClockView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(accessibilityTimeString))
+        .accessibilityIdentifier("digitalClock")
     }
     
     // 原有的计算属性已迁移到缓存方法中，显著提升性能

@@ -18,6 +18,7 @@ class SpeechHelper: NSObject, @unchecked Sendable {
     private let synthesizer = AVSpeechSynthesizer()
     private var isCurrentlySpeaking = false
     private var isHighPrioritySpeaking = false  // 高优先级播报标记
+    private var speechCompletionHandler: (() -> Void)?
     private let logger = Logger(subsystem: "SimpleClock", category: "SpeechHelper")
     
     // 移除后台任务管理，由PermissionManager统一处理

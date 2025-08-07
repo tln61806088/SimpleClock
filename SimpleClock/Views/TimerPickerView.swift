@@ -79,6 +79,7 @@ struct TimerPickerView: View {
                     }
                     .accessibilityLabel("计时时长选择器")
                     .accessibilityHint("滑动选择计时时长，范围1到720分钟")
+                    .accessibilityIdentifier("timerDurationPicker")
                 }
                 
                 // 右侧：提醒间隔选择器
@@ -133,6 +134,7 @@ struct TimerPickerView: View {
                     }
                     .accessibilityLabel("提醒间隔选择器")
                     .accessibilityHint("滑动选择提醒间隔")
+                    .accessibilityIdentifier("timerIntervalPicker")
                 }
             }
             }

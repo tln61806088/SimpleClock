@@ -57,6 +57,12 @@ class TimerViewModel: ObservableObject {
     // 后台检查Timer - 仅用于音频检查，大幅降低频率
     private var backgroundCheckTimer: Timer?
     
+    // 时间调整偏移量 - 用于支持语音指令增减时间
+    private var timeAdjustmentOffset: TimeInterval = 0
+    
+    // 语音操作标记 - 避免与提醒播报冲突
+    private var isVoiceOperationInProgress = false
+    
     // MARK: - Initialization
     
     init() {
@@ -182,7 +188,7 @@ class TimerViewModel: ObservableObject {
         // 如果计时器应该在运行，同步实际状态
         if isRunning, let startTime = startTime {
             let elapsed = Date().timeIntervalSince(startTime)
-            let totalDuration = TimeInterval(settings.duration * 60)
+            let totalDuration = TimeInterval(settings.duration * 60) + self.timeAdjustmentOffset
             let remaining = totalDuration - elapsed
             
             if remaining <= 0 {
@@ -278,6 +284,7 @@ class TimerViewModel: ObservableObject {
             startTime = Date()
             remainingSeconds = settings.duration * 60
             lastReminderMinute = -1
+            self.timeAdjustmentOffset = 0  // 重置时间调整偏移量
         } else {
             // 从暂停状态恢复
             let pausedDuration = pausedTime
@@ -367,6 +374,7 @@ class TimerViewModel: ObservableObject {
         startTime = nil
         pausedTime = 0
         lastReminderMinute = -1
+        self.timeAdjustmentOffset = 0  // 重置时间调整偏移量
         
         // 结束计时后，清空计时任务，显示时钟
         remainingSeconds = 0
@@ -379,6 +387,62 @@ class TimerViewModel: ObservableObject {
         
         // 恢复用户的滚轮设置（清除语音识别的临时设置）
         restoreUserPreferredSettings()
+    }
+    
+    /// 增加剩余时间（语音指令）
+    /// - Parameter minutes: 要增加的分钟数
+    func addTime(minutes: Int) {
+        guard minutes > 0 else { return }
+        
+        // 设置语音操作标记，临时阻止提醒播报3秒
+        isVoiceOperationInProgress = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            self.isVoiceOperationInProgress = false
+        }
+        
+        let secondsToAdd = TimeInterval(minutes * 60)
+        self.timeAdjustmentOffset += secondsToAdd
+        remainingSeconds = max(0, remainingSeconds + minutes * 60)
+        
+        // 重新安排通知（如果计时器正在运行）
+        if isRunning {
+            scheduleNotifications()
+        }
+        
+        logger.info("⏰ 增加时间 \(minutes) 分钟，当前偏移量: \(self.timeAdjustmentOffset) 秒")
+    }
+    
+    /// 减少剩余时间（语音指令）
+    /// - Parameter minutes: 要减少的分钟数
+    func subtractTime(minutes: Int) {
+        guard minutes > 0 else { return }
+        
+        // 设置语音操作标记，临时阻止提醒播报3秒
+        isVoiceOperationInProgress = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            self.isVoiceOperationInProgress = false
+        }
+        
+        let secondsToSubtract = TimeInterval(minutes * 60)
+        self.timeAdjustmentOffset -= secondsToSubtract
+        remainingSeconds = max(0, remainingSeconds - minutes * 60)
+        
+        // 如果剩余时间为0或负数，结束计时
+        if remainingSeconds <= 0 {
+            remainingSeconds = 0
+            if isRunning {
+                stopTimer()
+                handleTimerCompletion()
+            }
+            return
+        }
+        
+        // 重新安排通知（如果计时器正在运行）
+        if isRunning {
+            scheduleNotifications()
+        }
+        
+        logger.info("⏰ 减少时间 \(minutes) 分钟，当前偏移量: \(self.timeAdjustmentOffset) 秒")
     }
     
     /// 恢复用户的滚轮偏好设置
@@ -400,12 +464,12 @@ class TimerViewModel: ObservableObject {
     
     // MARK: - Private Methods
     
-    /// UI显示更新 - 始终保持1秒更新以确保流畅显示
+    /// UI显示更新 - 始终保持1秒更新以确保流畅显示，同时支持时间调整偏移量
     private func updateUIDisplay() {
         guard let startTime = startTime else { return }
         
         let elapsed = Date().timeIntervalSince(startTime)
-        let totalDuration = TimeInterval(settings.duration * 60)
+        let totalDuration = TimeInterval(settings.duration * 60) + self.timeAdjustmentOffset
         let remaining = totalDuration - elapsed
         
         // 移除NotificationCenter通知，直接更新@Published属性触发UI更新
@@ -522,6 +586,11 @@ class TimerViewModel: ObservableObject {
             return
         }
         
+        // 如果语音操作正在进行中，延迟提醒播报避免冲突
+        guard !isVoiceOperationInProgress else {
+            return
+        }
+        
         let remainingMinutes = (remainingSeconds + 59) / 60
         
         // 只在预计的提醒时间点检查 - 大幅优化效率
@@ -592,7 +661,7 @@ class TimerViewModel: ObservableObject {
         
         guard let startTime = startTime else { return }
         
-        let totalDuration = TimeInterval(settings.duration * 60)
+        let totalDuration = TimeInterval(settings.duration * 60) + self.timeAdjustmentOffset
         let endTime = startTime.addingTimeInterval(totalDuration)
         
         // 间隔提醒通知 - 修复：当间隔为0时（不提醒），跳过间隔提醒逻辑
@@ -820,7 +889,7 @@ class TimerViewModel: ObservableObject {
             // 时间信息（用于进度条显示）
             let elapsedTime = pausedTime > 0 ? pausedTime : 
                              (startTime != nil ? Date().timeIntervalSince(startTime!) : 0)
-            let totalDuration = TimeInterval(settings.duration * 60)
+            let totalDuration = TimeInterval(settings.duration * 60) + self.timeAdjustmentOffset
             
             nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsedTime
             nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = totalDuration
@@ -857,7 +926,7 @@ class TimerViewModel: ObservableObject {
     private var adaptiveTimerInterval: TimeInterval {
         // 过热情况下降低频率
         if thermalState == .critical {
-            return 3.0  // 3秒更新一次 (过热保护)
+            return 3.0  // 3秒更新一次 (过热保护)
         } else if thermalState == .serious {
             return 2.0  // 2秒更新一次 (温度较高)
         }

@@ -11,6 +11,8 @@ enum VoiceCommand: Equatable {
     case setTimer(duration: Int)
     case setInterval(interval: Int)
     case setTimerWithInterval(duration: Int, interval: Int)
+    case addTime(minutes: Int)      // 新增：增加时间
+    case subtractTime(minutes: Int) // 新增：减少时间
     case noSpeechDetected
     case unrecognized(text: String)
 }
@@ -28,10 +30,14 @@ struct VoiceRecognitionButton: View {
         VStack(spacing: DesignSystem.Spacing.voiceButtonInternalSpacing) {
             // 主按钮 - 简洁边框设计
             ZStack {
-                // 边框
+                // 边框和背景
                 RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.voiceButton)
-                    .stroke(themeManager.currentTheme.primaryGradient, lineWidth: DesignSystem.Borders.primaryBorder.lineWidth)
-                    .frame(maxWidth: .infinity, minHeight: DesignSystem.Sizes.voiceButtonHeight, maxHeight: DesignSystem.Sizes.voiceButtonHeight)
+                    .fill(Color.yellow)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.voiceButton)
+                            .stroke(themeManager.currentTheme.primaryGradient, lineWidth: DesignSystem.Borders.primaryBorder.lineWidth)
+                    )
+                    .frame(maxWidth: .infinity, minHeight: DesignSystem.Sizes.voiceButtonHeight * 0.75, maxHeight: DesignSystem.Sizes.voiceButtonHeight * 0.75)
                 
                 // 图标和文字
                 VStack(spacing: DesignSystem.Spacing.voiceButtonInternalSpacing) {
@@ -85,6 +91,7 @@ struct VoiceRecognitionButton: View {
         .accessibilityLabel("语音识别按钮")
         .accessibilityHint("点击开始语音识别")
         .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("voiceRecognitionButton")
     }
     
     @State private var isPressed = false
@@ -197,6 +204,15 @@ struct VoiceRecognitionButton: View {
     /// 智能指令识别 - 使用两阶段匹配方式
     private func intelligentCommandRecognition(from text: String) -> VoiceCommand {
         let lowercaseText = text.lowercased().replacingOccurrences(of: " ", with: "")
+        
+        // 检查是否是增加/减少时间的指令
+        if let addMinutes = extractAddTimeFromText(text) {
+            return .addTime(minutes: addMinutes)
+        }
+        
+        if let subtractMinutes = extractSubtractTimeFromText(text) {
+            return .subtractTime(minutes: subtractMinutes)
+        }
         
         // 两阶段匹配：第一阶段匹配计时时长，第二阶段匹配间隔时长
         let timerDuration = extractTimerDurationOnly(from: text)
@@ -1177,6 +1193,36 @@ struct VoiceRecognitionButton: View {
             
             speakConfirmationOnly(message)
             
+        case .addTime(let minutes):
+            // 增加时间：只能在计时进行中或暂停时操作
+            if viewModel.remainingSeconds > 0 {
+                // 使用TimerViewModel的addTime方法，确保持久化
+                viewModel.addTime(minutes: minutes)
+                
+                // 构建播报消息
+                let addedTimeText = formatDurationText(minutes)
+                let newRemainingTimeText = formatRemainingTimeText(viewModel.remainingSeconds)
+                let message = "已增加\(addedTimeText)，剩余时长\(newRemainingTimeText)"
+                speakConfirmationOnly(message)
+            } else {
+                speakConfirmationOnly("当前无计时任务，无法增加时间")
+            }
+            
+        case .subtractTime(let minutes):
+            // 减少时间：只能在计时进行中或暂停时操作
+            if viewModel.remainingSeconds > 0 {
+                // 使用TimerViewModel的subtractTime方法，确保持久化
+                viewModel.subtractTime(minutes: minutes)
+                
+                // 构建播报消息
+                let subtractedTimeText = formatDurationText(minutes)
+                let newRemainingTimeText = formatRemainingTimeText(viewModel.remainingSeconds)
+                let message = "已减少\(subtractedTimeText)，剩余时长\(newRemainingTimeText)"
+                speakConfirmationOnly(message)
+            } else {
+                speakConfirmationOnly("当前无计时任务，无法减少时间")
+            }
+            
         case .noSpeechDetected:
             speakConfirmationOnly("未识别到有效计时要求，请再试一次")
             
@@ -1283,6 +1329,134 @@ struct VoiceRecognitionButton: View {
             let hours = minutes / 60
             let remainingMinutes = minutes % 60
             return "\(hours)小时\(remainingMinutes)分钟"
+        }
+    }
+    
+    /// 从文本中提取增加时间的指令（增加/加 x分钟/小时）
+    private func extractAddTimeFromText(_ text: String) -> Int? {
+        // 检查是否包含增加关键词
+        let addKeywords = ["增加", "加", "加上", "添加", "家", "佳", "嘉", "茄", "++", "+", "增", "正", "挣"]
+        let hasAddKeyword = addKeywords.contains { text.contains($0) }
+        
+        guard hasAddKeyword else { return nil }
+        
+        // 提取时间长度
+        return extractTimeAmountFromText(text)
+    }
+    
+    /// 从文本中提取减少时间的指令（减少/减 x分钟/小时）
+    private func extractSubtractTimeFromText(_ text: String) -> Int? {
+        // 检查是否包含减少关键词
+        let subtractKeywords = ["减少", "减", "减去", "扣除", "剪", "捡", "俭", "检", "尖", "--", "-", "建", "见", "间"]
+        let hasSubtractKeyword = subtractKeywords.contains { text.contains($0) }
+        
+        guard hasSubtractKeyword else { return nil }
+        
+        // 提取时间长度
+        return extractTimeAmountFromText(text)
+    }
+    
+    /// 从文本中提取时间数量（通用方法）
+    private func extractTimeAmountFromText(_ text: String) -> Int? {
+        var totalMinutes = 0
+        
+        // 处理复合表达式（如"一小时三十分钟"）
+        if text.contains("小时") && text.contains("分钟") {
+            // 提取小时数
+            let numbers = extractNumbers(from: text)
+            
+            // 查找小时数（在"小时"之前的数字）
+            for number in numbers {
+                if text.range(of: "\(number)小时") != nil {
+                    totalMinutes += number * 60
+                    break
+                }
+            }
+            
+            // 查找分钟数（在"分钟"之前且在"小时"之后的数字）
+            if let hourIndex = text.range(of: "小时") {
+                let textAfterHour = String(text[hourIndex.upperBound...])
+                for number in numbers {
+                    if textAfterHour.contains("\(number)分钟") {
+                        totalMinutes += number
+                        break
+                    }
+                }
+            }
+        }
+        // 处理半小时表达
+        else if text.contains("半小时") {
+            let halfHourNumbers = extractHalfHourExpressions(from: text)
+            if let halfHourMinutes = halfHourNumbers.first {
+                totalMinutes = halfHourMinutes
+            }
+        }
+        // 只有小时
+        else if text.contains("小时") {
+            let numbers = extractNumbers(from: text)
+            for number in numbers {
+                if number >= 1 && number <= 12 && text.contains("\(number)小时") || containsChineseHour(text, number) {
+                    totalMinutes = number * 60
+                    break
+                }
+            }
+        }
+        // 只有分钟
+        else if text.contains("分钟") {
+            let numbers = extractNumbers(from: text)
+            for number in numbers {
+                if number >= 1 && number <= 720 && text.contains("\(number)分钟") || containsChineseMinute(text, number) {
+                    totalMinutes = number
+                    break
+                }
+            }
+        }
+        
+        // 验证时间范围
+        return totalMinutes > 0 && totalMinutes <= 720 ? totalMinutes : nil
+    }
+    
+    /// 检查文本是否包含中文数字表示的小时
+    private func containsChineseHour(_ text: String, _ number: Int) -> Bool {
+        let chineseNumbers = ["一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+                             "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
+                             "十一": 11, "十二": 12]
+        
+        for (chinese, arabic) in chineseNumbers {
+            if arabic == number && text.contains("\(chinese)小时") {
+                return true
+            }
+        }
+        return false
+    }
+    
+    /// 检查文本是否包含中文数字表示的分钟
+    private func containsChineseMinute(_ text: String, _ number: Int) -> Bool {
+        let chineseNumbers = ["一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+                             "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
+                             "十五": 15, "二十": 20, "三十": 30, "四十": 40, "五十": 50]
+        
+        for (chinese, arabic) in chineseNumbers {
+            if arabic == number && text.contains("\(chinese)分钟") {
+                return true
+            }
+        }
+        return false
+    }
+    
+    /// 格式化剩余时间文本（用于语音播报）
+    private func formatRemainingTimeText(_ seconds: Int) -> String {
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600 + 59) / 60 // 向上取整
+        
+        if hours > 0 {
+            if minutes > 0 {
+                return "\(hours)小时\(minutes)分钟"
+            } else {
+                return "\(hours)小时"
+            }
+        } else {
+            return "\(minutes)分钟"
         }
     }
 }

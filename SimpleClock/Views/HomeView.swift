@@ -191,6 +191,7 @@ struct TimerStatusView: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("计时器状态")
         .accessibilityValue("\(formattedRemainingTime)，\(viewModel.isRunning ? "运行中" : "已暂停")")
+        .accessibilityIdentifier("timerStatus")
     }
     
     /// 格式化剩余时间显示
@@ -202,22 +203,15 @@ struct TimerStatusView: View {
         if hours > 0 {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         } else {
-            return String(format: "%02d:%02d", minutes, seconds)
+            return String(format: "%d:%02d", minutes, seconds)
         }
     }
     
-    /// 计算进度（0.0 到 1.0）
+    /// 计算进度值
     private var progress: Double {
+        guard viewModel.settings.duration > 0 else { return 0 }
         let totalSeconds = Double(viewModel.settings.duration * 60)
         let remainingSeconds = Double(viewModel.remainingSeconds)
-        return max(0, (totalSeconds - remainingSeconds) / totalSeconds)
+        return (totalSeconds - remainingSeconds) / totalSeconds
     }
 }
-
-#if DEBUG
-struct HomeView_Previews: PreviewProvider {
-    static var previews: some View {
-        HomeView()
-    }
-}
-#endif
