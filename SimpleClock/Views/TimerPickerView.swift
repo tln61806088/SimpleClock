@@ -25,119 +25,123 @@ struct TimerPickerView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: DesignSystem.Spacing.medium + 4) {
-                // 选择器区域
+                // 选择器区域 - 完全居中
                 HStack(spacing: DesignSystem.Spacing.pickerSpacing) {
                     // 左侧：计时时长选择器
                     VStack(alignment: .center, spacing: DesignSystem.Spacing.small + 4) {
-                    HStack(spacing: DesignSystem.Spacing.labelSpacing) {
-                        Image(systemName: "clock.fill")
-                            .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelIcon))
-                            .foregroundStyle(themeManager.currentTheme.primaryGradient)
-                            .shadow(color: DesignSystem.Shadows.primaryShadow.color,
-                                   radius: DesignSystem.Shadows.primaryShadow.radius,
-                                   x: DesignSystem.Shadows.primaryShadow.x,
-                                   y: DesignSystem.Shadows.primaryShadow.y)
-                            .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
-                                   radius: DesignSystem.Shadows.secondaryShadow.radius,
-                                   x: DesignSystem.Shadows.secondaryShadow.x,
-                                   y: DesignSystem.Shadows.secondaryShadow.y)
+                        HStack(spacing: DesignSystem.Spacing.labelSpacing) {
+                            Image(systemName: "clock.fill")
+                                .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelIcon))
+                                .foregroundStyle(themeManager.currentTheme.primaryGradient)
+                                .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                                       radius: DesignSystem.Shadows.primaryShadow.radius,
+                                       x: DesignSystem.Shadows.primaryShadow.x,
+                                       y: DesignSystem.Shadows.primaryShadow.y)
+                                .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                                       radius: DesignSystem.Shadows.secondaryShadow.radius,
+                                       x: DesignSystem.Shadows.secondaryShadow.x,
+                                       y: DesignSystem.Shadows.secondaryShadow.y)
+                            
+                            Text("计时时长")
+                                .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelText))
+                                .foregroundStyle(themeManager.currentTheme.primaryGradient)
+                                .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                                       radius: DesignSystem.Shadows.primaryShadow.radius,
+                                       x: DesignSystem.Shadows.primaryShadow.x,
+                                       y: DesignSystem.Shadows.primaryShadow.y)
+                                .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                                       radius: DesignSystem.Shadows.secondaryShadow.radius,
+                                       x: DesignSystem.Shadows.secondaryShadow.x,
+                                       y: DesignSystem.Shadows.secondaryShadow.y)
+                        }
                         
-                        Text("计时时长")
-                            .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelText))
-                            .foregroundStyle(themeManager.currentTheme.primaryGradient)
-                            .shadow(color: DesignSystem.Shadows.primaryShadow.color,
-                                   radius: DesignSystem.Shadows.primaryShadow.radius,
-                                   x: DesignSystem.Shadows.primaryShadow.x,
-                                   y: DesignSystem.Shadows.primaryShadow.y)
-                            .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
-                                   radius: DesignSystem.Shadows.secondaryShadow.radius,
-                                   x: DesignSystem.Shadows.secondaryShadow.x,
-                                   y: DesignSystem.Shadows.secondaryShadow.y)
+                        Picker("计时时长", selection: $selectedDuration) {
+                            ForEach(Array(TimerSettings.durationRange), id: \.self) { duration in
+                                Text("\(duration)分钟")
+                                    .tag(duration)
+                                    .font(DesignSystem.Fonts.pickerText(size: DesignSystem.Sizes.pickerText))
+                                    .foregroundStyle(themeManager.currentTheme.primaryGradient)
+                            }
+                        }
+                        .pickerStyle(.wheel)
+                        .frame(width: calculatePickerWidth(geometry: geometry), height: 100)
+                        .disabled(!isEnabled)
+                        .opacity(isEnabled ? 1.0 : 0.6)
+                        .background(
+                            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.pickerBackground)
+                                .fill(Color(.systemBackground))
+                                .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+                        )
+                        .onChange(of: selectedDuration) { newValue in
+                            if isEnabled {
+                                handleDurationChange(newValue)
+                            }
+                        }
+                        .accessibilityLabel("计时时长选择器")
+                        .accessibilityHint("滑动选择计时时长，范围1到720分钟")
+                        .accessibilityIdentifier("timerDurationPicker")
                     }
                     
-                    Picker("计时时长", selection: $selectedDuration) {
-                        ForEach(Array(TimerSettings.durationRange), id: \.self) { duration in
-                            Text("\(duration)分钟")
-                                .tag(duration)
-                                .font(DesignSystem.Fonts.pickerText(size: DesignSystem.Sizes.pickerText))
+                    // 右侧：提醒间隔选择器
+                    VStack(alignment: .center, spacing: DesignSystem.Spacing.small + 4) {
+                        HStack(spacing: DesignSystem.Spacing.labelSpacing) {
+                            Image(systemName: "bell.fill")
+                                .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelIcon))
                                 .foregroundStyle(themeManager.currentTheme.primaryGradient)
+                                .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                                       radius: DesignSystem.Shadows.primaryShadow.radius,
+                                       x: DesignSystem.Shadows.primaryShadow.x,
+                                       y: DesignSystem.Shadows.primaryShadow.y)
+                                .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                                       radius: DesignSystem.Shadows.secondaryShadow.radius,
+                                       x: DesignSystem.Shadows.secondaryShadow.x,
+                                       y: DesignSystem.Shadows.secondaryShadow.y)
+                            
+                            Text("提醒间隔")
+                                .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelText))
+                                .foregroundStyle(themeManager.currentTheme.primaryGradient)
+                                .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                                       radius: DesignSystem.Shadows.primaryShadow.radius,
+                                       x: DesignSystem.Shadows.primaryShadow.x,
+                                       y: DesignSystem.Shadows.primaryShadow.y)
+                                .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                                       radius: DesignSystem.Shadows.secondaryShadow.radius,
+                                       x: DesignSystem.Shadows.secondaryShadow.x,
+                                       y: DesignSystem.Shadows.secondaryShadow.y)
                         }
-                    }
-                    .pickerStyle(.wheel)
-                    .frame(width: calculatePickerWidth(geometry: geometry), height: 100)
-                    .disabled(!isEnabled)
-                    .opacity(isEnabled ? 1.0 : 0.6)
-                    .background(
-                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.pickerBackground)
-                            .fill(Color(.systemBackground))
-                            .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-                    )
-                    .onChange(of: selectedDuration) { newValue in
-                        if isEnabled {
-                            handleDurationChange(newValue)
-                        }
-                    }
-                    .accessibilityLabel("计时时长选择器")
-                    .accessibilityHint("滑动选择计时时长，范围1到720分钟")
-                    .accessibilityIdentifier("timerDurationPicker")
-                }
-                
-                // 右侧：提醒间隔选择器
-                VStack(alignment: .center, spacing: DesignSystem.Spacing.small + 4) {
-                    HStack(spacing: DesignSystem.Spacing.labelSpacing) {
-                        Image(systemName: "bell.fill")
-                            .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelIcon))
-                            .foregroundStyle(themeManager.currentTheme.primaryGradient)
-                            .shadow(color: DesignSystem.Shadows.primaryShadow.color,
-                                   radius: DesignSystem.Shadows.primaryShadow.radius,
-                                   x: DesignSystem.Shadows.primaryShadow.x,
-                                   y: DesignSystem.Shadows.primaryShadow.y)
-                            .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
-                                   radius: DesignSystem.Shadows.secondaryShadow.radius,
-                                   x: DesignSystem.Shadows.secondaryShadow.x,
-                                   y: DesignSystem.Shadows.secondaryShadow.y)
                         
-                        Text("提醒间隔")
-                            .font(DesignSystem.Fonts.labelText(size: DesignSystem.Sizes.labelText))
-                            .foregroundStyle(themeManager.currentTheme.primaryGradient)
-                            .shadow(color: DesignSystem.Shadows.primaryShadow.color,
-                                   radius: DesignSystem.Shadows.primaryShadow.radius,
-                                   x: DesignSystem.Shadows.primaryShadow.x,
-                                   y: DesignSystem.Shadows.primaryShadow.y)
-                            .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
-                                   radius: DesignSystem.Shadows.secondaryShadow.radius,
-                                   x: DesignSystem.Shadows.secondaryShadow.x,
-                                   y: DesignSystem.Shadows.secondaryShadow.y)
-                    }
-                    
-                    Picker("提醒间隔", selection: $selectedInterval) {
-                        ForEach(TimerSettings.intervalOptions, id: \.self) { interval in
-                            Text(interval == 0 ? "不提醒" : "\(interval)分钟")
-                                .tag(interval)
-                                .font(DesignSystem.Fonts.pickerText(size: DesignSystem.Sizes.pickerText))
-                                .foregroundStyle(themeManager.currentTheme.primaryGradient)
+                        Picker("提醒间隔", selection: $selectedInterval) {
+                            ForEach(TimerSettings.intervalOptions, id: \.self) { interval in
+                                Text(interval == 0 ? "不提醒" : "\(interval)分钟")
+                                    .tag(interval)
+                                    .font(DesignSystem.Fonts.pickerText(size: DesignSystem.Sizes.pickerText))
+                                    .foregroundStyle(themeManager.currentTheme.primaryGradient)
+                            }
                         }
-                    }
-                    .pickerStyle(.wheel)
-                    .frame(width: calculatePickerWidth(geometry: geometry), height: 100)
-                    .disabled(!isEnabled)
-                    .opacity(isEnabled ? 1.0 : 0.6)
-                    .background(
-                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.pickerBackground)
-                            .fill(Color(.systemBackground))
-                            .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-                    )
-                    .onChange(of: selectedInterval) { newValue in
-                        if isEnabled {
-                            handleIntervalChange(newValue)
+                        .pickerStyle(.wheel)
+                        .frame(width: calculatePickerWidth(geometry: geometry), height: 100)
+                        .disabled(!isEnabled)
+                        .opacity(isEnabled ? 1.0 : 0.6)
+                        .background(
+                            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.pickerBackground)
+                                .fill(Color(.systemBackground))
+                                .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+                        )
+                        .onChange(of: selectedInterval) { newValue in
+                            if isEnabled {
+                                handleIntervalChange(newValue)
+                            }
                         }
+                        .accessibilityLabel("提醒间隔选择器")
+                        .accessibilityHint("滑动选择提醒间隔")
+                        .accessibilityIdentifier("timerIntervalPicker")
                     }
-                    .accessibilityLabel("提醒间隔选择器")
-                    .accessibilityHint("滑动选择提醒间隔")
-                    .accessibilityIdentifier("timerIntervalPicker")
                 }
+                .frame(maxWidth: .infinity) // 确保HStack使用全宽
+                .multilineTextAlignment(.center) // 确保文本居中对齐
             }
-            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity) // 确保VStack使用全宽全高
+            .position(x: geometry.size.width / 2, y: geometry.size.height / 2) // 完全居中定位
         }
         .onAppear {
             // 初始化时播报当前设置
