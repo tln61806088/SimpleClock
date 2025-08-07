@@ -1346,8 +1346,10 @@ struct VoiceRecognitionButton: View {
     
     /// 从文本中提取减少时间的指令（减少/减 x分钟/小时）
     private func extractSubtractTimeFromText(_ text: String) -> Int? {
+        // 新增前置条件：必须在计时运行状态下
+        guard viewModel.isRunning else { return nil }
         // 检查是否包含减少关键词
-        let subtractKeywords = ["减少", "减", "减去", "扣除", "剪", "捡", "俭", "检", "尖", "--", "-", "建", "见", "间"]
+        let subtractKeywords = ["减少", "减", "减去", "扣除", "剪", "--", "-"]; // 移除易混淆同音词
         let hasSubtractKeyword = subtractKeywords.contains { text.contains($0) }
         
         guard hasSubtractKeyword else { return nil }
