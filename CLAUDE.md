@@ -140,7 +140,7 @@ SimpleClock/
 
 ### 问题解决
 - **Display耗电**: 从80%降至正常水平
-- **手机发热**: 完全解决发热问题
+- **手机发热**: 完全解决heating问题
 - **每秒重绘**: 消除不必要的UI更新
 
 ### 优化策略
@@ -245,7 +245,7 @@ SimpleClock/
 ## 已修复的重要问题
 
 ### 性能和稳定性 (2025-07-30)
-- **性能耗电问题**: Display耗电从80%降至正常水平，手机不再发热
+- **性能耗电问题**: Display耗电从80%降至正常水平，手机不再heating
 - **iPad语音识别崩溃**: 音频格式兼容性问题，AVAudioEngine崩溃修复
 - **编译警告清理**: 未使用变量警告修复，代码质量提升
 
@@ -346,3 +346,42 @@ xcodebuild -project SimpleClock.xcodeproj -scheme SimpleClock -configuration Deb
 7. **用户体验**: 统一术语、连贯播报、智能提醒、自然语言交互
 
 SimpleClock是一个技术实现精细化、用户体验优秀的无障碍计时器应用，展现了对视障用户需求的深度理解和高质量的工程实现。
+
+## 语音控制实现
+### 核心功能
+1. **指令枚举体系**
+   - <mcsymbol name="VoiceCommand" filename="VoiceRecognitionButton.swift" path="SimpleClock/Views/VoiceRecognitionButton.swift" startline="45" type="enum"></mcsymbol> 定义9种计时指令
+   - 支持同音字识别（如"开始"匹配"开启/启动"）
+
+2. **双阶段解析引擎**
+   - 第一阶段：<mcsymbol name="extractSubtractTimeFromText" filename="VoiceRecognitionButton.swift" path="SimpleClock/Views/VoiceRecognitionButton.swift" startline="132" type="function"></mcsymbol> 精准匹配数字
+   - 第二阶段：<mcsymbol name="intelligentCommandRecognition" filename="VoiceRecognitionButton.swift" path="SimpleClock/Views/VoiceRecognitionButton.swift" startline="165" type="function"></mcsymbol> 语义分析
+
+3. **状态校验机制**
+   - 在<mcfile name="VoiceRecognitionButton.swift" path="SimpleClock/Views/VoiceRecognitionButton.swift"></mcfile>中实现viewModel.isRunning状态检查
+   - 无效操作时通过<mcfile name="SpeechHelper.swift" path="SimpleClock/Utils/SpeechHelper.swift"></mcfile>播报提示
+
+### 关键API
+```swift
+// 指令执行入口
+func executeCommand(_ command: VoiceCommand) {
+    switch command {
+    case .startTimer:
+        guard !viewModel.isRunning else { return }
+        viewModel.startTimer()
+        SpeechHelper.shared.speak("已开始\(viewModel.selectedTime)分钟计时")
+    // ... 其他case ...
+    }
+}
+
+// 音频会话管理
+class AudioSessionManager {
+    func switchToMode(_ mode: AudioSessionMode) {
+        // ... 实现.playAndRecord与.videoChat模式切换
+    }
+}
+```
+
+### 权限管理
+- <mcfile name="PermissionManager.swift" path="SimpleClock/Utils/PermissionManager.swift"></mcfile> 实现语音识别权限请求链
+- Info.plist包含`NSSpeechRecognitionUsageDescription`声明
