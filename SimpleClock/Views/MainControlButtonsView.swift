@@ -4,13 +4,11 @@ import SwiftUI
 /// 第一行：时间播报、开始计时/暂停计时
 /// 第二行：剩余时长、结束计时
 /// 第三行：语音识别按钮（大圆形）
-/// 主要操作按钮区域
-/// 简化版本：只保留开始计时/暂停计时和结束计时两个按钮
-/// 按钮宽度与语音识别按钮保持一致
 struct MainControlButtonsView: View {
     
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject var viewModel: TimerViewModel
+    let isAccessibilityMode: Bool
     
     // 性能优化：缓存按钮状态，避免每秒重绘
     @State private var cachedButtonTitle = "开始计时"
@@ -19,30 +17,87 @@ struct MainControlButtonsView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(alignment: .center, spacing: DesignSystem.Spacing.buttonSpacing) {
-                // 开始计时/暂停计时按钮（使用缓存状态）
-                ControlButton(
-                    title: cachedButtonTitle,
-                    systemImage: cachedButtonIcon,
-                    backgroundColor: .green,
-                    buttonHeight: DesignSystem.Sizes.voiceButtonHeight * 0.75, // 高度降低1/4
-                    isMainButton: true
-                ) {
-                    handleStartPauseTimer()
+                if isAccessibilityMode {
+                    // 无障碍模式：3个按钮（竖向排列）
+                    // 开始计时/暂停计时按钮（绿色）
+                    ControlButton(
+                        title: cachedButtonTitle,
+                        systemImage: cachedButtonIcon,
+                        backgroundColor: .green,
+                        buttonHeight: DesignSystem.Sizes.voiceButtonHeight * 0.75,
+                        isMainButton: true
+                    ) {
+                        handleStartPauseTimer()
+                    }
+                    
+                    // 结束计时按钮（红色）
+                    ControlButton(
+                        title: "结束计时",
+                        systemImage: "stop.fill",
+                        backgroundColor: .red,
+                        buttonHeight: DesignSystem.Sizes.voiceButtonHeight * 0.75,
+                        isMainButton: true
+                    ) {
+                        handleEndTimer()
+                    }
+                    
+                    // 语音识别按钮（黄色）
+                    VoiceRecognitionButton(viewModel: viewModel, isAccessibilityMode: isAccessibilityMode)
+                } else {
+                    // 普通模式：5个按钮（2x2网格布局）
+                    // 第一行按钮
+                    HStack(spacing: DesignSystem.Spacing.buttonSpacing) {
+                        // 时间播报按钮
+                        ControlButton(
+                            title: "时间播报",
+                            systemImage: "clock.fill",
+                            backgroundColor: .clear,
+                            buttonHeight: calculateButtonHeight(for: geometry),
+                            isMainButton: true
+                        ) {
+                            handleTimeAnnouncement()
+                        }
+                        
+                        // 开始计时/暂停计时按钮（使用缓存状态）
+                        ControlButton(
+                            title: cachedButtonTitle,
+                            systemImage: cachedButtonIcon,
+                            backgroundColor: .clear,
+                            buttonHeight: calculateButtonHeight(for: geometry),
+                            isMainButton: true
+                        ) {
+                            handleStartPauseTimer()
+                        }
+                    }
+                    
+                    // 第二行按钮
+                    HStack(spacing: DesignSystem.Spacing.buttonSpacing) {
+                        // 剩余时长按钮
+                        ControlButton(
+                            title: "剩余时长",
+                            systemImage: "timer.circle.fill",
+                            backgroundColor: .clear,
+                            buttonHeight: calculateButtonHeight(for: geometry),
+                            isMainButton: true
+                        ) {
+                            handleRemainingTime()
+                        }
+                        
+                        // 结束计时按钮
+                        ControlButton(
+                            title: "结束计时",
+                            systemImage: "stop.fill",
+                            backgroundColor: .clear,
+                            buttonHeight: calculateButtonHeight(for: geometry),
+                            isMainButton: true
+                        ) {
+                            handleEndTimer()
+                        }
+                    }
+                    
+                    // 第三行：语音识别按钮
+                    VoiceRecognitionButton(viewModel: viewModel, isAccessibilityMode: isAccessibilityMode)
                 }
-                
-                // 结束计时按钮
-                ControlButton(
-                    title: "结束计时",
-                    systemImage: "stop.fill",
-                    backgroundColor: .red,
-                    buttonHeight: DesignSystem.Sizes.voiceButtonHeight * 0.75, // 高度降低1/4
-                    isMainButton: true
-                ) {
-                    handleEndTimer()
-                }
-                
-                // 语音识别按钮
-                VoiceRecognitionButton(viewModel: viewModel)
             }
 .padding(.top, calculateDynamicTopPaddingWithSpacing())
             .onAppear {
@@ -102,6 +157,12 @@ struct MainControlButtonsView: View {
         }
     }
     
+    /// 根据设备尺寸计算按钮高度
+    /// 主控制按钮高度 = 语音识别按钮高度的1/1.75
+    private func calculateButtonHeight(for geometry: GeometryProxy) -> CGFloat {
+        return DesignSystem.Sizes.mainButtonHeight
+    }
+    
     /// 根据屏幕高度动态计算顶部间距（包含滚轮间距）
     private func calculateDynamicTopPaddingWithSpacing() -> CGFloat {
         let screenHeight = UIScreen.main.bounds.height
@@ -120,6 +181,26 @@ struct MainControlButtonsView: View {
     }
     
     // MARK: - 按钮操作处理
+    
+    /// 处理时间播报
+    private func handleTimeAnnouncement() {
+        HapticHelper.shared.lightImpact()
+        SpeechHelper.shared.speakCurrentTime()
+    }
+    
+    /// 处理剩余时长播报
+    private func handleRemainingTime() {
+        HapticHelper.shared.lightImpact()
+        
+        if viewModel.remainingSeconds > 0 {
+            // 有计时任务运行时，播报剩余时间
+            SpeechHelper.shared.speakRemainingTime(remainingSeconds: viewModel.remainingSeconds)
+        } else {
+            // 无计时任务时，播报状态
+            let message = "当前无计时任务"
+            SpeechHelper.shared.speak(message)
+        }
+    }
     
     /// 处理开始/暂停计时
     private func handleStartPauseTimer() {
@@ -279,7 +360,7 @@ struct ControlButton: View {
 #if DEBUG
 struct MainControlButtonsView_Previews: PreviewProvider {
     static var previews: some View {
-        MainControlButtonsView(viewModel: TimerViewModel())
+        MainControlButtonsView(viewModel: TimerViewModel(), isAccessibilityMode: true)
             .previewLayout(.sizeThatFits)
             .padding()
     }

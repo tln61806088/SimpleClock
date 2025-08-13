@@ -1,5 +1,26 @@
 import SwiftUI
 
+/// 应用设置状态管理
+class AppSettingsState: ObservableObject {
+    @Published var isExpanded = false
+    @Published var isAccessibilityMode = true // 默认为无障碍模式
+    
+    init() {
+        // 从UserDefaults读取设置
+        self.isAccessibilityMode = UserDefaults.standard.bool(forKey: "isAccessibilityMode")
+        if UserDefaults.standard.object(forKey: "isAccessibilityMode") == nil {
+            // 首次启动，默认为无障碍模式
+            self.isAccessibilityMode = true
+            UserDefaults.standard.set(true, forKey: "isAccessibilityMode")
+        }
+    }
+    
+    func toggleAccessibilityMode() {
+        isAccessibilityMode.toggle()
+        UserDefaults.standard.set(isAccessibilityMode, forKey: "isAccessibilityMode")
+    }
+}
+
 /// 应用主界面
 /// 整合所有功能组件：数字时钟、计时设置、操作按钮、语音识别
 struct HomeView: View {
@@ -7,6 +28,7 @@ struct HomeView: View {
     @ObservedObject private var themeManager = ThemeManager.shared
     @StateObject private var timerViewModel = TimerViewModel()
     @StateObject private var colorThemeState = ColorThemeState()
+    @StateObject private var appSettingsState = AppSettingsState()
     @State private var timerSettings = TimerSettings.userPreferred
     
     // 性能优化：缓存TimerPicker的启用状态，避免每秒重绘
@@ -32,9 +54,17 @@ struct HomeView: View {
                     VStack(spacing: DesignSystem.Spacing.large) {
                         // 自定义导航栏
                         HStack {
-                            // 临时隐藏主题选择按钮 - 免费版本暂时只提供基础黑色主题
-                            // ColorThemeToggleButton()
-                            //     .environmentObject(colorThemeState)
+                            // 左上角主题选择按钮（仅在普通模式下显示）
+                            HStack {
+                                if !appSettingsState.isAccessibilityMode {
+                                    ColorThemeToggleButton()
+                                        .environmentObject(colorThemeState)
+                                } else {
+                                    // 无障碍模式下的占位，保持布局对称
+                                    Color.clear.frame(width: DesignSystem.Sizes.labelIcon + 2, height: DesignSystem.Sizes.labelIcon + 2)
+                                }
+                            }
+                            .frame(width: 80, alignment: .leading) // 固定宽度确保对称
                             
                             Spacer()
                             
@@ -53,12 +83,32 @@ struct HomeView: View {
                             
                             Spacer()
                             
-                            // 移除右侧占位，因为左侧已经没有按钮了
-                            // Color.clear.frame(width: DesignSystem.Sizes.labelIcon + 2, height: DesignSystem.Sizes.labelIcon + 2)
+                            // 右上角模式切换滑块
+                            HStack(spacing: 4) {
+                                Text(appSettingsState.isAccessibilityMode ? "无障碍" : "普通")
+                                    .font(.caption2)
+                                    .foregroundColor(.primary)
+                                    .frame(width: 36, alignment: .trailing) // 固定宽度确保布局稳定
+                                
+                                Toggle("", isOn: Binding(
+                                    get: { appSettingsState.isAccessibilityMode },
+                                    set: { _ in
+                                        HapticHelper.shared.lightImpact()
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            appSettingsState.toggleAccessibilityMode()
+                                        }
+                                        SpeechHelper.shared.speak(appSettingsState.isAccessibilityMode ? "已切换到无障碍模式" : "已切换到普通模式")
+                                    }
+                                ))
+                                .labelsHidden()
+                                .scaleEffect(0.8)
+                                .tint(.blue)
+                            }
+                            .frame(width: 80, alignment: .trailing) // 固定宽度确保对称
                         }
                         
                         // 时钟显示区域
-                        clockDisplayArea
+                        clockDisplayArea(isAccessibilityMode: appSettingsState.isAccessibilityMode)
                     
                         // 优雅的分割线
                         HStack {
@@ -83,7 +133,7 @@ struct HomeView: View {
                     
                     // 底部按钮区 - 固定在底部，响应式高度
                     VStack(spacing: 0) {
-                        MainControlButtonsView(viewModel: timerViewModel)
+                        MainControlButtonsView(viewModel: timerViewModel, isAccessibilityMode: appSettingsState.isAccessibilityMode)
                             .frame(height: calculateButtonAreaHeight(for: geometry), alignment: .top)
                     }
                     .padding(.horizontal, DesignSystem.Spacing.medium + 4)
@@ -91,9 +141,11 @@ struct HomeView: View {
                 }
                 .background(cachedBackgroundGradient.ignoresSafeArea())
                 
-                // 临时隐藏颜色选择面板 - 免费版本暂时不提供主题选择
-                // ColorThemeOverlay()
-                //     .environmentObject(colorThemeState)
+                // 颜色选择面板（仅在普通模式下显示）
+                if !appSettingsState.isAccessibilityMode {
+                    ColorThemeOverlay()
+                        .environmentObject(colorThemeState)
+                }
             }
         }
         .onAppear {
@@ -157,12 +209,12 @@ struct HomeView: View {
     
     // 时钟显示区域
     @ViewBuilder
-    private var clockDisplayArea: some View {
-        // 暂时只显示正常时钟，作为单独的显示区域
+    private func clockDisplayArea(isAccessibilityMode: Bool) -> some View {
+        // 根据模式显示不同样式的时钟
         VStack(spacing: 16) {
             HStack {
                 Spacer()
-                DigitalClockView(timerViewModel: timerViewModel)
+                DigitalClockView(timerViewModel: timerViewModel, isAccessibilityMode: isAccessibilityMode)
                 Spacer()
             }
         }
@@ -235,3 +287,4 @@ struct TimerStatusView: View {
         return (totalSeconds - remainingSeconds) / totalSeconds
     }
 }
+

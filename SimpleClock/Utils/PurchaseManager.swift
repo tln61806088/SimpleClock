@@ -63,27 +63,8 @@ class PurchaseManager: NSObject, ObservableObject {
     
     /// 检查指定主题是否已解锁
     func isThemeUnlocked(_ theme: DesignSystem.ColorTheme) -> Bool {
-        // 黑色主题永远免费
-        if theme == .black {
-            return true
-        }
-        
-        // 检查是否购买了全部主题包
-        if isPurchased(.allThemes) {
-            return true
-        }
-        
-        // 检查纯色主题
-        if !theme.isGradient && isPurchased(.solidColors) {
-            return true
-        }
-        
-        // 检查渐变主题
-        if theme.isGradient && isPurchased(.gradientColors) {
-            return true
-        }
-        
-        return false
+        // 🎁 解锁所有主题 - 免费提供给用户
+        return true
     }
     
     /// 购买指定产品

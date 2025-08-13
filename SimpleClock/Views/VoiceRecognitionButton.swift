@@ -23,6 +23,7 @@ struct VoiceRecognitionButton: View {
     
     @ObservedObject private var themeManager = ThemeManager.shared
     var viewModel: TimerViewModel  // 改为普通引用，避免每秒重绘
+    var isAccessibilityMode: Bool = true // 默认为无障碍模式
     @State private var recordingTimer: Timer?
     @State private var isRecording = false
     
@@ -32,7 +33,7 @@ struct VoiceRecognitionButton: View {
             ZStack {
                 // 边框和背景
                 RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.voiceButton)
-                    .fill(Color.yellow)
+                    .fill(isAccessibilityMode ? Color.yellow : Color.clear)
                     .overlay(
                         RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.voiceButton)
                             .stroke(themeManager.currentTheme.primaryGradient, lineWidth: DesignSystem.Borders.primaryBorder.lineWidth)

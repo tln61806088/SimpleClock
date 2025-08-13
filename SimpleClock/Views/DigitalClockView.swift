@@ -10,30 +10,31 @@ struct DigitalClockView: View {
     @State private var cachedMinute = ""
     @State private var cachedSecond = ""
     
-    // 计时器相关参数（暂时保留但不使用）
+    // 计时器相关参数
     var timerViewModel: TimerViewModel? = nil
     var isCompactMode: Bool = false
+    var isAccessibilityMode: Bool = true // 默认为无障碍模式
     
     var body: some View {
         VStack(spacing: 16) {
             // 主要时钟显示
             HStack(spacing: 0) {
                 // 时（使用缓存，减少重绘）
-                TimeDigitView(text: cachedHour, size: DesignSystem.Sizes.clockDigit)
+                TimeDigitView(text: cachedHour, size: DesignSystem.Sizes.clockDigit, isAccessibilityMode: isAccessibilityMode)
                 
                 // 冒号（固定显示）
-                TimeDigitView(text: ":", size: DesignSystem.Sizes.colon)
+                TimeDigitView(text: ":", size: DesignSystem.Sizes.colon, isAccessibilityMode: isAccessibilityMode)
                     .padding(.horizontal, DesignSystem.Spacing.clockDigitSpacing)
                 
                 // 分（使用缓存，减少重绘）
-                TimeDigitView(text: cachedMinute, size: DesignSystem.Sizes.clockDigit)
+                TimeDigitView(text: cachedMinute, size: DesignSystem.Sizes.clockDigit, isAccessibilityMode: isAccessibilityMode)
                 
                 // 冒号（固定显示）
-                TimeDigitView(text: ":", size: DesignSystem.Sizes.colon)
+                TimeDigitView(text: ":", size: DesignSystem.Sizes.colon, isAccessibilityMode: isAccessibilityMode)
                     .padding(.horizontal, DesignSystem.Spacing.clockDigitSpacing)
                 
                 // 秒（使用缓存，减少重绘）
-                TimeDigitView(text: cachedSecond, size: DesignSystem.Sizes.clockDigit)
+                TimeDigitView(text: cachedSecond, size: DesignSystem.Sizes.clockDigit, isAccessibilityMode: isAccessibilityMode)
             }
 
         }
@@ -134,18 +135,40 @@ struct TimeDigitView: View {
     @ObservedObject private var themeManager = ThemeManager.shared
     let text: String
     let size: CGFloat
+    let isAccessibilityMode: Bool
     
     var body: some View {
-        Text(text)
-            .font(DesignSystem.Fonts.clockDigit(size: size))
-            .foregroundColor(.clear)
-            .overlay(
-                Text(text)
-                    .font(DesignSystem.Fonts.clockDigit(size: size))
-                    .foregroundStyle(themeManager.currentTheme.primaryGradient)
-            )
-
-            .fixedSize()
+        if isAccessibilityMode {
+            // 无障碍模式：简洁样式，无阴影
+            Text(text)
+                .font(DesignSystem.Fonts.clockDigit(size: size))
+                .foregroundColor(.clear)
+                .overlay(
+                    Text(text)
+                        .font(DesignSystem.Fonts.clockDigit(size: size))
+                        .foregroundStyle(themeManager.currentTheme.primaryGradient)
+                )
+                .fixedSize()
+        } else {
+            // 普通模式：丰富样式，有阴影和字体效果
+            Text(text)
+                .font(DesignSystem.Fonts.clockDigit(size: size))
+                .foregroundColor(.clear)
+                .overlay(
+                    Text(text)
+                        .font(DesignSystem.Fonts.clockDigit(size: size))
+                        .foregroundStyle(themeManager.currentTheme.primaryGradient)
+                        .shadow(color: DesignSystem.Shadows.primaryShadow.color,
+                               radius: DesignSystem.Shadows.primaryShadow.radius,
+                               x: DesignSystem.Shadows.primaryShadow.x,
+                               y: DesignSystem.Shadows.primaryShadow.y)
+                        .shadow(color: DesignSystem.Shadows.secondaryShadow.color,
+                               radius: DesignSystem.Shadows.secondaryShadow.radius,
+                               x: DesignSystem.Shadows.secondaryShadow.x,
+                               y: DesignSystem.Shadows.secondaryShadow.y)
+                )
+                .fixedSize()
+        }
     }
 }
 
