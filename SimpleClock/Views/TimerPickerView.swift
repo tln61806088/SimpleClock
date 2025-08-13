@@ -196,12 +196,8 @@ struct TimerPickerView: View {
         
         // 使用DispatchQueue替代Timer，避免强引用问题
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            // 播报完整的计时设置信息
-            let intervalText = selectedInterval == 0 ? "不提醒" : "\(selectedInterval)分钟"
-            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            // 语音播报内容："计时[X]分钟，间隔[间隔文本]" (第168行)
-            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            SpeechHelper.shared.speak("计时\(newDuration)分钟，间隔\(intervalText)")
+            // 使用统一的播报函数，确保术语一致性
+            SpeechHelper.shared.speakTimerSettings(duration: newDuration, interval: selectedInterval)
             lastSpokenDuration = newDuration
         }
     }
@@ -219,12 +215,8 @@ struct TimerPickerView: View {
         
         // 使用DispatchQueue替代Timer，避免强引用问题
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            // 播报完整的计时设置信息
-            let intervalText = newInterval == 0 ? "不提醒" : "\(newInterval)分钟"
-            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            // 语音播报内容："计时[X]分钟，间隔[间隔文本]" (第188行)
-            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            SpeechHelper.shared.speak("计时\(selectedDuration)分钟，间隔\(intervalText)")
+            // 使用统一的播报函数，确保术语一致性
+            SpeechHelper.shared.speakTimerSettings(duration: selectedDuration, interval: newInterval)
             lastSpokenInterval = newInterval
         }
     }

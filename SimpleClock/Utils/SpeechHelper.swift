@@ -187,7 +187,7 @@ class SpeechHelper: NSObject, @unchecked Sendable {
     ///   - duration: 计时时长（分钟）
     ///   - interval: 提醒间隔（分钟）
     func speakTimerSettings(duration: Int, interval: Int) {
-        let intervalText = interval == 0 ? "不间隔" : "间隔\(interval)分钟"
+        let intervalText = interval == 0 ? "不提醒" : "间隔\(interval)分钟"
         let text = "计时\(duration)分钟，\(intervalText)"
         speak(text)
     }
