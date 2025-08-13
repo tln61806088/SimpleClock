@@ -13,11 +13,21 @@ class AppSettingsState: ObservableObject {
             self.isAccessibilityMode = true
             UserDefaults.standard.set(true, forKey: "isAccessibilityMode")
         }
+        
+        // 如果是无障碍模式，确保使用黑色主题
+        if self.isAccessibilityMode {
+            ThemeManager.shared.currentTheme = .black
+        }
     }
     
     func toggleAccessibilityMode() {
         isAccessibilityMode.toggle()
         UserDefaults.standard.set(isAccessibilityMode, forKey: "isAccessibilityMode")
+        
+        // 切换到无障碍模式时强制使用黑色主题
+        if isAccessibilityMode {
+            ThemeManager.shared.currentTheme = .black
+        }
     }
 }
 
@@ -171,6 +181,16 @@ struct HomeView: View {
             cachedBackgroundGradient = DesignSystem.Colors.backgroundGradient
             cachedPrimaryShadow = DesignSystem.Shadows.primaryShadow
             cachedSecondaryShadow = DesignSystem.Shadows.secondaryShadow
+        }
+        .onChange(of: appSettingsState.isAccessibilityMode) { isAccessibilityMode in
+            // 模式切换时的主题管理
+            if isAccessibilityMode {
+                // 切换到无障碍模式：强制使用黑色主题
+                if themeManager.currentTheme != .black {
+                    themeManager.currentTheme = .black
+                }
+            }
+            // 普通模式保持当前主题，不做强制修改
         }
     }
     
