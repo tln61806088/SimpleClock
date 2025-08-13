@@ -38,7 +38,7 @@ struct VoiceRecognitionButton: View {
                         RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.voiceButton)
                             .stroke(themeManager.currentTheme.primaryGradient, lineWidth: DesignSystem.Borders.primaryBorder.lineWidth)
                     )
-                    .frame(maxWidth: .infinity, minHeight: DesignSystem.Sizes.voiceButtonHeight * 0.75, maxHeight: DesignSystem.Sizes.voiceButtonHeight * 0.75)
+                    .frame(maxWidth: .infinity, minHeight: DesignSystem.Sizes.voiceButtonHeight, maxHeight: DesignSystem.Sizes.voiceButtonHeight)
                 
                 // 图标和文字
                 VStack(spacing: DesignSystem.Spacing.voiceButtonInternalSpacing) {

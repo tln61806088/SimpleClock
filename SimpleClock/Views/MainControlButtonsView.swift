@@ -24,7 +24,7 @@ struct MainControlButtonsView: View {
                         title: cachedButtonTitle,
                         systemImage: cachedButtonIcon,
                         backgroundColor: .green,
-                        buttonHeight: DesignSystem.Sizes.voiceButtonHeight * 0.75,
+                        buttonHeight: DesignSystem.Sizes.mainButtonHeight,
                         isMainButton: true
                     ) {
                         handleStartPauseTimer()
@@ -35,7 +35,7 @@ struct MainControlButtonsView: View {
                         title: "结束计时",
                         systemImage: "stop.fill",
                         backgroundColor: .red,
-                        buttonHeight: DesignSystem.Sizes.voiceButtonHeight * 0.75,
+                        buttonHeight: DesignSystem.Sizes.mainButtonHeight,
                         isMainButton: true
                     ) {
                         handleEndTimer()
@@ -99,7 +99,7 @@ struct MainControlButtonsView: View {
                     VoiceRecognitionButton(viewModel: viewModel, isAccessibilityMode: isAccessibilityMode)
                 }
             }
-.padding(.top, calculateDynamicTopPaddingWithSpacing())
+            .padding(.top, calculateDynamicTopPaddingWithSpacing())
             .onAppear {
                 // 初始化按钮状态
                 updateButtonState()

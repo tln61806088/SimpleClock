@@ -133,13 +133,14 @@ struct HomeView: View {
                             .onChange(of: timerSettings) { newSettings in
                                 timerViewModel.updateSettings(newSettings)
                             }
+                            .padding(.bottom, 16)
 
                     }
                     .padding(.horizontal, DesignSystem.Spacing.medium + 4)
                     .padding(.top, DesignSystem.Spacing.small + 4)
                     
                     // 中间弹性空白区域
-                    Spacer(minLength: DesignSystem.Spacing.small)
+                    Spacer(minLength: calculateDynamicSpacerLength())
                     
                     // 底部按钮区 - 固定在底部，响应式高度
                     VStack(spacing: 0) {
@@ -194,20 +195,33 @@ struct HomeView: View {
         }
     }
     
+    /// 动态计算Spacer的最小长度，根据设备尺寸自动适应
+    private func calculateDynamicSpacerLength() -> CGFloat {
+        let screenHeight = UIScreen.main.bounds.height
+        
+        // 根据屏幕高度设置合适的最小间距
+        if screenHeight <= 667 { // iPhone SE/6s等小屏幕
+            return 12  // 小屏幕保持紧凑
+        } else if screenHeight <= 736 { // iPhone 6 Plus等中屏幕
+            return 16  // 中等间距
+        } else if screenHeight <= 812 { // iPhone X等中大屏幕
+            return 20  // 较大间距
+        } else { // iPhone 15 Pro等大屏幕
+            return 24  // 大间距，确保布局舒适
+        }
+    }
+    
 /// 计算按钮区域高度，根据设备尺寸自动适应
     private func calculateButtonAreaHeight(for geometry: GeometryProxy) -> CGFloat {
         // 使用DesignSystem中定义的高度（已自动等比例缩放）
         let voiceButtonHeight = DesignSystem.Sizes.voiceButtonHeight * 0.75 // 与MainControlButtonsView一致
         let mainButtonHeight = DesignSystem.Sizes.voiceButtonHeight * 0.75   // 与MainControlButtonsView一致
         
-        // 计算动态顶部间距（与MainControlButtonsView保持一致）
-        let dynamicTopPadding = calculateDynamicTopPadding(screenHeight: geometry.size.height)
-        
         // 按钮间距
         let buttonSpacing = DesignSystem.Spacing.buttonSpacing
         
-        // 总高度 = 动态顶部间距 + 两个主按钮 + 一个语音按钮 + 按钮之间的间距
-        let totalHeight = dynamicTopPadding + (mainButtonHeight * 2) + voiceButtonHeight + (buttonSpacing * 2)
+        // 总高度 = 两个主按钮 + 一个语音按钮 + 按钮之间的间距（不包含顶部间距，由Spacer控制）
+        let totalHeight = (mainButtonHeight * 2) + voiceButtonHeight + (buttonSpacing * 2)
         
         return totalHeight
     }
