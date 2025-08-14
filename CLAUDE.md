@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**本次更新主要内容**：iPad横屏模式优化 - 实现按钮高度分级调整(第一二行1.25倍、第三行2倍)、添加设备方向感知机制、确保滚轮宽度与按钮宽度精确匹配，提升iPad横屏模式下的触控体验和界面一致性 (2025-08-14)
+**本次更新主要内容**：iPad横屏模式完整优化 - 实现按钮高度分级调整、设备方向权限控制、滚轮宽度精确匹配、修复iPhone语音按钮尺寸问题、清理调试界面，完成跨设备布局统一优化 (2025-08-14)
 
 SimpleClock 项目文档 - 专为无障碍用户设计的语音计时器应用
 
@@ -286,7 +286,7 @@ SimpleClock/
 - 建立语音识别和TTS系统的最佳实践
 - 性能优化方案的系统性总结
 
-### 🎯 2025-08-14 iPad横屏模式完整优化
+### 🎯 2025-08-14 iPad横屏模式完整优化与跨设备布局统一
 **本次更新主要内容**：
 1. **按钮高度分级调整系统**
    - iPad竖屏：第一二行保持原高度，第三行1.5倍
@@ -313,12 +313,23 @@ SimpleClock/
    - iPad支持横竖屏自由切换，充分利用大屏优势
    - 通过Deployment Info和AppDelegate双重控制
 
+6. **iPhone语音按钮尺寸修复**
+   - 修复calculateButtonHeightForDevice函数逻辑错误
+   - 恢复iPhone语音识别按钮的正确高度(voiceButtonHeight)
+   - 确保iPhone布局不受iPad优化影响
+
+7. **界面清理与完善**
+   - 移除TimerPickerView和MainControlButtonsView的调试背景
+   - 清理界面，达到最终发布状态
+   - 完善项目文档记录
+
 **技术实现**：
 - MainControlButtonsView: calculateButtonHeightForDevice()分级计算
 - TimerPickerView: calculatePickerWidth()方向感知计算
 - 使用UIScreen.main.bounds检测方向，避免设备方向延迟
 - 通过NotificationCenter监听设备旋转，触发UI刷新
 - AppDelegate实现supportedInterfaceOrientationsFor设备差异化控制
+- iPhone语音按钮高度区分处理，恢复正确尺寸
 
 ### 🔧 2025-08-08 语音识别功能优化
 **本次更新主要内容**：
