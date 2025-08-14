@@ -125,6 +125,18 @@ class HapticHelper {
         }
     }
     
+    /// 为选择操作提供震动反馈
+    /// 用于颜色主题选择等选择操作
+    func selectionImpact() {
+        print("HapticHelper: 触发选择震动")
+        
+        DispatchQueue.main.async {
+            let generator = UISelectionFeedbackGenerator()
+            generator.prepare()
+            generator.selectionChanged()
+        }
+    }
+    
     /// 兼容旧版本的语音识别震动方法
     func voiceRecognitionImpact() {
         mediumImpact()

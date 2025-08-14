@@ -12,11 +12,24 @@ struct TimerSettings: Equatable {
     /// 默认设置
     static let `default` = TimerSettings(duration: 60, interval: 5)
     
+    /// 从用户偏好加载设置，如果没有则使用默认值
+    static var userPreferred: TimerSettings {
+        let duration = UserDefaults.standard.object(forKey: "UserPreferredDuration") as? Int ?? 60
+        let interval = UserDefaults.standard.object(forKey: "UserPreferredInterval") as? Int ?? 5
+        return TimerSettings(duration: duration, interval: interval)
+    }
+    
+    /// 保存用户偏好设置
+    func saveAsUserPreferred() {
+        UserDefaults.standard.set(duration, forKey: "UserPreferredDuration")
+        UserDefaults.standard.set(interval, forKey: "UserPreferredInterval")
+    }
+    
     /// 可选的计时时长范围（1-720分钟，即12小时）
     static let durationRange = 1...720
     
     /// 可选的提醒间隔选项（分钟）
-    static let intervalOptions = [0, 1, 5, 10, 15, 30, 60, 90]
+    static let intervalOptions = [0, 1, 5, 10, 15, 30, 60, 90, 120, 150, 180]
     
     /// 初始化
     /// - Parameters:

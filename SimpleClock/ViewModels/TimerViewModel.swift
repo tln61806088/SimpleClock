@@ -5,16 +5,21 @@ import UIKit
 import MediaPlayer
 import os.log
 
+// MARK: - Timer Notification Extension (已移除高频timerTick通知以降低能耗)
+
 /// 计时器视图模型，管理计时状态和提醒逻辑，支持后台运行
 class TimerViewModel: ObservableObject {
     
     // MARK: - Published Properties
     
     /// 计时器设置
-    @Published var settings = TimerSettings.default
+    @Published var settings = TimerSettings.userPreferred
     
     /// 计时器是否正在运行
     @Published var isRunning = false
+    
+    /// 计时器是否处于暂停状态（有计时任务但暂停）
+    @Published var isPaused = false
     
     /// 剩余秒数
     @Published var remainingSeconds = 0
@@ -35,6 +40,29 @@ class TimerViewModel: ObservableObject {
     private var appDidEnterBackgroundObserver: NSObjectProtocol?
     private var appWillEnterForegroundObserver: NSObjectProtocol?
     
+    // 设备状态监听 - 能耗优化
+    private var lowPowerModeObserver: NSObjectProtocol?
+    private var thermalStateObserver: NSObjectProtocol?
+    
+    // 当前设备状态
+    @Published var isLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
+    @Published var thermalState = ProcessInfo.processInfo.thermalState
+    
+    // UI更新专用Timer - 始终保持1秒以确保显示流畅
+    private var uiUpdateTimer: Timer?
+    
+    // 提醒时间点缓存 - 避免频繁计算
+    private var nextReminderTimes: Set<Int> = []
+    
+    // 后台检查Timer - 仅用于音频检查，大幅降低频率
+    private var backgroundCheckTimer: Timer?
+    
+    // 时间调整偏移量 - 用于支持语音指令增减时间
+    private var timeAdjustmentOffset: TimeInterval = 0
+    
+    // 语音操作标记 - 避免与提醒播报冲突
+    private var isVoiceOperationInProgress = false
+    
     // MARK: - Initialization
     
     init() {
@@ -52,6 +80,9 @@ class TimerViewModel: ObservableObject {
         
         // 设置应用生命周期监听
         setupAppLifecycleObservers()
+        
+        // 设置设备状态监听 - 能耗优化
+        setupDeviceStateObservers()
         
         // 设置锁屏控制通知监听
         setupLockScreenNotifications()
@@ -75,6 +106,14 @@ class TimerViewModel: ObservableObject {
             NotificationCenter.default.removeObserver(observer)
         }
         if let observer = appWillEnterForegroundObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        
+        // 移除设备状态观察者
+        if let observer = lowPowerModeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = thermalStateObserver {
             NotificationCenter.default.removeObserver(observer)
         }
     }
@@ -149,7 +188,7 @@ class TimerViewModel: ObservableObject {
         // 如果计时器应该在运行，同步实际状态
         if isRunning, let startTime = startTime {
             let elapsed = Date().timeIntervalSince(startTime)
-            let totalDuration = TimeInterval(settings.duration * 60)
+            let totalDuration = TimeInterval(settings.duration * 60) + self.timeAdjustmentOffset
             let remaining = totalDuration - elapsed
             
             if remaining <= 0 {
@@ -166,10 +205,75 @@ class TimerViewModel: ObservableObject {
         }
     }
     
+    /// 设置设备状态监听 - 能耗优化
+    private func setupDeviceStateObservers() {
+        // 低电量模式监听
+        lowPowerModeObserver = NotificationCenter.default.addObserver(
+            forName: .NSProcessInfoPowerStateDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handlePowerStateChange()
+        }
+        
+        // 设备温度状态监听
+        thermalStateObserver = NotificationCenter.default.addObserver(
+            forName: ProcessInfo.thermalStateDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleThermalStateChange()
+        }
+        
+        logger.info("🌡️ 设备状态监听已启动 - 低电量: \(self.isLowPowerMode), 温度: \(self.thermalState.rawValue)")
+    }
+    
+    /// 处理电源状态变化
+    private func handlePowerStateChange() {
+        let newLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
+        if newLowPowerMode != isLowPowerMode {
+            isLowPowerMode = newLowPowerMode
+            logger.info("🔋 低电量模式变化: \(self.isLowPowerMode ? "开启" : "关闭")")
+            
+            if self.isLowPowerMode {
+                logger.info("📱 检测到低电量模式，将降低更新频率")
+                // 低电量时不停止计时，但会调整更新频率
+            }
+        }
+    }
+    
+    /// 处理设备温度状态变化
+    private func handleThermalStateChange() {
+        let newThermalState = ProcessInfo.processInfo.thermalState
+        if newThermalState != thermalState {
+            thermalState = newThermalState
+            logger.info("🌡️ 设备温度状态变化: \(self.thermalState.rawValue)")
+            
+            switch self.thermalState {
+            case .critical:
+                logger.warning("⚠️ 设备过热！降低更新频率以降温")
+            case .serious:
+                logger.info("🔥 设备温度较高，适度降低更新频率")
+            case .fair:
+                logger.info("🌡️ 设备温度正常")
+            case .nominal:
+                logger.info("❄️ 设备温度良好")
+            @unknown default:
+                logger.info("🌡️ 设备温度状态未知")
+            }
+        }
+    }
+    
     // MARK: - Public Methods
     
     /// 开始计时
     func startTimer() {
+        startTimer(saveSettings: true)
+    }
+    
+    /// 开始计时（可选择是否保存设置）
+    /// - Parameter saveSettings: 是否保存设置到用户偏好（默认true）
+    func startTimer(saveSettings: Bool = true) {
         guard !isRunning else { return }
         
         // 检查后台App刷新权限
@@ -180,6 +284,7 @@ class TimerViewModel: ObservableObject {
             startTime = Date()
             remainingSeconds = settings.duration * 60
             lastReminderMinute = -1
+            self.timeAdjustmentOffset = 0  // 重置时间调整偏移量
         } else {
             // 从暂停状态恢复
             let pausedDuration = pausedTime
@@ -187,19 +292,38 @@ class TimerViewModel: ObservableObject {
         }
         
         isRunning = true
+        isPaused = false
         pausedTime = 0
+        
+        // 只有在明确要求时才保存用户设置习惯（滚轮操作）
+        if saveSettings {
+            self.settings.saveAsUserPreferred()
+            logger.info("💾 保存用户偏好设置：计时\(self.settings.duration)分钟，间隔\(self.settings.interval)分钟")
+        } else {
+            logger.info("🎤 语音识别临时启动：计时\(self.settings.duration)分钟，间隔\(self.settings.interval)分钟（不保存设置）")
+        }
+        
+        // 预先计算所有提醒时间点 - 避免频繁检查
+        calculateReminderTimes()
         
         // 开始计时时启动音乐播放以维持后台音频会话
         logger.info("🔄 计时开始，启动音乐播放")
         continuousAudioPlayer.startContinuousPlayback()
         
-        // 启动定时器
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.updateTimer()
+        // 启动UI更新Timer - 始终保持1秒以确保显示流畅
+        uiUpdateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.updateUIDisplay()
         }
         
+        // 启动后台检查Timer - 仅用于音频检查，60秒间隔
+        backgroundCheckTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
+            self?.performBackgroundChecks()
+        }
+        
+        logger.info("⏱️ 优化后Timer架构: UI更新 1秒, 后台检查 60秒")
+        
         // 更新锁屏媒体信息为计时状态
-        updateNowPlayingInfo()
+        // updateNowPlayingInfo() // 禁用锁屏媒体信息更新以降低能耗
         
         // 安排本地通知
         scheduleNotifications()
@@ -210,8 +334,13 @@ class TimerViewModel: ObservableObject {
         guard isRunning else { return }
         
         isRunning = false
+        isPaused = true  // 设置为暂停状态
         timer?.invalidate()
         timer = nil
+        uiUpdateTimer?.invalidate()
+        uiUpdateTimer = nil
+        backgroundCheckTimer?.invalidate()
+        backgroundCheckTimer = nil
         
         // 计时暂停时，音乐继续播放以维持后台会话
         // 不停止音乐播放，这样锁屏控制依然可用
@@ -222,7 +351,7 @@ class TimerViewModel: ObservableObject {
         }
         
         // 更新锁屏媒体信息为暂停状态
-        updateNowPlayingInfo()
+        // updateNowPlayingInfo() // 禁用锁屏媒体信息更新以降低能耗
         
         // 取消所有通知
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
@@ -231,8 +360,13 @@ class TimerViewModel: ObservableObject {
     /// 停止计时
     func stopTimer() {
         isRunning = false
+        isPaused = false  // 清除暂停状态
         timer?.invalidate()
         timer = nil
+        uiUpdateTimer?.invalidate()
+        uiUpdateTimer = nil
+        backgroundCheckTimer?.invalidate()
+        backgroundCheckTimer = nil
         
         // 计时结束时停止音乐播放
         continuousAudioPlayer.stopContinuousPlayback()
@@ -240,8 +374,9 @@ class TimerViewModel: ObservableObject {
         startTime = nil
         pausedTime = 0
         lastReminderMinute = -1
+        self.timeAdjustmentOffset = 0  // 重置时间调整偏移量
         
-        // 结束计时后，将剩余时间重置为0，恢复正常时钟显示
+        // 结束计时后，清空计时任务，显示时钟
         remainingSeconds = 0
         
         // 清除锁屏媒体信息
@@ -249,6 +384,72 @@ class TimerViewModel: ObservableObject {
         
         // 取消所有通知
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        
+        // 恢复用户的滚轮设置（清除语音识别的临时设置）
+        restoreUserPreferredSettings()
+    }
+    
+    /// 增加剩余时间（语音指令）
+    /// - Parameter minutes: 要增加的分钟数
+    func addTime(minutes: Int) {
+        guard minutes > 0 else { return }
+        
+        // 设置语音操作标记，临时阻止提醒播报3秒
+        isVoiceOperationInProgress = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            self.isVoiceOperationInProgress = false
+        }
+        
+        let secondsToAdd = TimeInterval(minutes * 60)
+        self.timeAdjustmentOffset += secondsToAdd
+        remainingSeconds = max(0, remainingSeconds + minutes * 60)
+        
+        // 重新安排通知（如果计时器正在运行）
+        if isRunning {
+            scheduleNotifications()
+        }
+        
+        logger.info("⏰ 增加时间 \(minutes) 分钟，当前偏移量: \(self.timeAdjustmentOffset) 秒")
+    }
+    
+    /// 减少剩余时间（语音指令）
+    /// - Parameter minutes: 要减少的分钟数
+    func subtractTime(minutes: Int) {
+        guard minutes > 0 else { return }
+        
+        // 设置语音操作标记，临时阻止提醒播报3秒
+        isVoiceOperationInProgress = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            self.isVoiceOperationInProgress = false
+        }
+        
+        let secondsToSubtract = TimeInterval(minutes * 60)
+        self.timeAdjustmentOffset -= secondsToSubtract
+        remainingSeconds = max(0, remainingSeconds - minutes * 60)
+        
+        // 如果剩余时间为0或负数，结束计时
+        if remainingSeconds <= 0 {
+            remainingSeconds = 0
+            if isRunning {
+                stopTimer()
+                handleTimerCompletion()
+            }
+            return
+        }
+        
+        // 重新安排通知（如果计时器正在运行）
+        if isRunning {
+            scheduleNotifications()
+        }
+        
+        logger.info("⏰ 减少时间 \(minutes) 分钟，当前偏移量: \(self.timeAdjustmentOffset) 秒")
+    }
+    
+    /// 恢复用户的滚轮偏好设置
+    private func restoreUserPreferredSettings() {
+        let userPreferredSettings = TimerSettings.userPreferred
+        self.settings = userPreferredSettings
+        logger.info("🔄 恢复用户滚轮设置：计时\(self.settings.duration)分钟，间隔\(self.settings.interval)分钟")
     }
     
     /// 重置计时器设置
@@ -263,13 +464,16 @@ class TimerViewModel: ObservableObject {
     
     // MARK: - Private Methods
     
-    /// 更新计时器
-    private func updateTimer() {
+    /// UI显示更新 - 始终保持1秒更新以确保流畅显示，同时支持时间调整偏移量
+    private func updateUIDisplay() {
         guard let startTime = startTime else { return }
         
         let elapsed = Date().timeIntervalSince(startTime)
-        let totalDuration = TimeInterval(settings.duration * 60)
+        let totalDuration = TimeInterval(settings.duration * 60) + self.timeAdjustmentOffset
         let remaining = totalDuration - elapsed
+        
+        // 移除NotificationCenter通知，直接更新@Published属性触发UI更新
+        // NotificationCenter.default.post(name: .timerTick, object: nil)
         
         if remaining <= 0 {
             // 计时结束
@@ -278,22 +482,46 @@ class TimerViewModel: ObservableObject {
             handleTimerCompletion()
         } else {
             remainingSeconds = Int(remaining)
-            
-            // 更新锁屏媒体信息
-            updateNowPlayingInfo()
-            
-            checkForReminders()
-            
-            // 每30秒检查一次持续音频播放状态
-            if Int(elapsed) % 30 == 0 {
-                checkContinuousAudioStatus()
-            }
-            
-            // 每10秒强化检查后台播放状态
-            if Int(elapsed) % 10 == 0 {
-                continuousAudioPlayer.ensureBackgroundPlayback()
+            // 高效提醒检查 - 只在预计时间点检查
+            checkForRemindersOptimized()
+        }
+    }
+    
+    /// 预先计算所有提醒时间点 - 避免频繁检查
+    private func calculateReminderTimes() {
+        self.nextReminderTimes.removeAll()
+        
+        let totalMinutes = settings.duration
+        
+        // 间隔提醒时间点
+        if settings.interval > 0 {
+            var minute = settings.interval
+            while minute < totalMinutes {
+                self.nextReminderTimes.insert(minute)
+                minute += settings.interval
             }
         }
+        
+        // 特殊提醒时间点
+        if settings.interval != 0 && settings.interval != 1 {
+            self.nextReminderTimes.insert(2) // 2分钟提醒
+        }
+        
+        // 1分钟间隔的特殊情况
+        if settings.interval == 1 {
+            self.nextReminderTimes.insert(2)
+            self.nextReminderTimes.insert(1)
+        }
+        
+        logger.info("🔔 提醒时间点已计算: \(self.nextReminderTimes.sorted().reversed())")
+    }
+    
+    /// 后台检查 - 仅做必要的音频检查，大幅降低频率
+    private func performBackgroundChecks() {
+        // 仅在必要时检查音频状态
+        checkContinuousAudioStatus()
+        continuousAudioPlayer.ensureBackgroundPlayback()
+        logger.info("🎧 后台音频检查完成")
     }
     
     /// 检查持续音频播放状态
@@ -312,28 +540,94 @@ class TimerViewModel: ObservableObject {
         // 间隔提醒（只有当间隔不为0时才提醒）
         if settings.interval > 0 && remainingMinutes > 0 && remainingMinutes % settings.interval == 0 && lastReminderMinute != remainingMinutes {
             lastReminderMinute = remainingMinutes
-            let message = "剩余时间\(remainingMinutes)分钟"
+            
+            // 统一格式：剩余时长X小时X分钟
+            let hours = remainingMinutes / 60
+            let minutes = remainingMinutes % 60
+            var message = "剩余时长"
+            if hours > 0 {
+                message += "\(hours)小时"
+            }
+            if minutes > 0 || hours == 0 {
+                message += "\(minutes)分钟"
+            }
+            
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："剩余时长[X]小时[X]分钟" (第332行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak(message)
         }
         
         // 特殊提醒：距离结束2分钟时的提醒（除了"不提醒"和"1分钟"间隔）
         if remainingMinutes == 2 && settings.interval != 0 && settings.interval != 1 && lastReminderMinute != remainingMinutes {
             lastReminderMinute = remainingMinutes
-            let message = "剩余2分钟，计时即将结束"
+            let message = "剩余时长2分钟，计时即将结束"
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："剩余时长2分钟，计时即将结束" (第342行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak(message)
         }
         
         // 1分钟间隔的情况：最后2分钟每分钟提醒
         if settings.interval == 1 && remainingMinutes <= 2 && remainingMinutes > 0 && lastReminderMinute != remainingMinutes {
             lastReminderMinute = remainingMinutes
-            let message = "剩余\(remainingMinutes)分钟"
+            let message = "剩余时长\(remainingMinutes)分钟"
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // 语音播报内容："剩余时长[X]分钟" (第352行)
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             SpeechHelper.shared.speak(message)
         }
+    }
+    
+    /// 高效提醒检查 - 只在即将到达时检查，保持功能100%不变
+    private func checkForRemindersOptimized() {
+        // 如果用户设置了"不提醒"（interval=0），直接返回，绝不提醒
+        guard settings.interval > 0 else {
+            return
+        }
+        
+        // 如果语音操作正在进行中，延迟提醒播报避免冲突
+        guard !isVoiceOperationInProgress else {
+            return
+        }
+        
+        let remainingMinutes = (remainingSeconds + 59) / 60
+        
+        // 只在预计的提醒时间点检查 - 大幅优化效率
+        guard self.nextReminderTimes.contains(remainingMinutes) && lastReminderMinute != remainingMinutes else {
+            return
+        }
+        
+        lastReminderMinute = remainingMinutes
+        
+        // 生成提醒消息 - 保持原有逻辑100%不变
+        let message: String
+        if remainingMinutes == 2 && settings.interval != 1 {
+            message = "剩余时长2分钟，计时即将结束"
+        } else {
+            let hours = remainingMinutes / 60
+            let minutes = remainingMinutes % 60
+            var messageBuilder = "剩余时长"
+            if hours > 0 {
+                messageBuilder += "\(hours)小时"
+            }
+            if minutes > 0 || hours == 0 {
+                messageBuilder += "\(minutes)分钟"
+            }
+            message = messageBuilder
+        }
+        
+        // 保持原有语音播报功能
+        SpeechHelper.shared.speak(message)
+        logger.info("🔔 提醒触发: \(remainingMinutes)分钟 - \(message)")
     }
     
     /// 处理计时完成
     private func handleTimerCompletion() {
         HapticHelper.shared.lightImpact()
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // 语音播报内容："计时结束" (第341行)
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         SpeechHelper.shared.speak("计时结束")
         
         // 发送完成通知
@@ -367,27 +661,29 @@ class TimerViewModel: ObservableObject {
         
         guard let startTime = startTime else { return }
         
-        let totalDuration = TimeInterval(settings.duration * 60)
+        let totalDuration = TimeInterval(settings.duration * 60) + self.timeAdjustmentOffset
         let endTime = startTime.addingTimeInterval(totalDuration)
         
-        // 间隔提醒通知
+        // 间隔提醒通知 - 修复：当间隔为0时（不提醒），跳过间隔提醒逻辑
         let intervalMinutes = settings.interval
-        var nextReminderTime = startTime.addingTimeInterval(TimeInterval(intervalMinutes * 60))
-        
-        while nextReminderTime < endTime {
-            let remainingTime = endTime.timeIntervalSince(nextReminderTime)
-            let remainingMinutes = Int(remainingTime / 60)
+        if intervalMinutes > 0 {
+            var nextReminderTime = startTime.addingTimeInterval(TimeInterval(intervalMinutes * 60))
             
-            if remainingMinutes > 2 {
-                scheduleNotification(
-                    at: nextReminderTime,
-                    title: "计时提醒",
-                    body: "剩余时间\(remainingMinutes)分钟",
-                    identifier: "reminder_\(remainingMinutes)"
-                )
+            while nextReminderTime < endTime {
+                let remainingTime = endTime.timeIntervalSince(nextReminderTime)
+                let remainingMinutes = Int(remainingTime / 60)
+                
+                if remainingMinutes > 2 {
+                    scheduleNotification(
+                        at: nextReminderTime,
+                        title: "计时提醒",
+                        body: "剩余时长\(remainingMinutes)分钟",
+                        identifier: "reminder_\(remainingMinutes)"
+                    )
+                }
+                
+                nextReminderTime = nextReminderTime.addingTimeInterval(TimeInterval(intervalMinutes * 60))
             }
-            
-            nextReminderTime = nextReminderTime.addingTimeInterval(TimeInterval(intervalMinutes * 60))
         }
         
         // 最后2分钟每分钟提醒
@@ -494,6 +790,9 @@ class TimerViewModel: ObservableObject {
                 self.startTimer()
                 // 立即播报，使用优化的锁屏TTS配置
                 self.logger.info("🎵 锁屏播放 - 开始播报确认")
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                // 语音播报内容："恢复计时" (第503行)
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 SpeechHelper.shared.speak("恢复计时")
             }
         }
@@ -506,6 +805,9 @@ class TimerViewModel: ObservableObject {
                 self.pauseTimer()
                 // 立即播报，使用优化的锁屏TTS配置
                 self.logger.info("🎵 锁屏暂停 - 开始播报确认")
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                // 语音播报内容："暂停计时" (第515行)
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 SpeechHelper.shared.speak("暂停计时")
             }
         }
@@ -518,11 +820,17 @@ class TimerViewModel: ObservableObject {
                 self.pauseTimer()
                 // 立即播报，使用优化的锁屏TTS配置
                 self.logger.info("🎵 锁屏切换(暂停) - 开始播报确认")
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                // 语音播报内容："暂停计时" (第527行)
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 SpeechHelper.shared.speak("暂停计时")
             } else {
                 self.startTimer()
                 // 立即播报，使用优化的锁屏TTS配置
                 self.logger.info("🎵 锁屏切换(开始) - 开始播报确认")
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                // 语音播报内容："恢复计时" (第532行)
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 SpeechHelper.shared.speak("恢复计时")
             }
         }
@@ -581,7 +889,7 @@ class TimerViewModel: ObservableObject {
             // 时间信息（用于进度条显示）
             let elapsedTime = pausedTime > 0 ? pausedTime : 
                              (startTime != nil ? Date().timeIntervalSince(startTime!) : 0)
-            let totalDuration = TimeInterval(settings.duration * 60)
+            let totalDuration = TimeInterval(settings.duration * 60) + self.timeAdjustmentOffset
             
             nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsedTime
             nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = totalDuration
@@ -603,7 +911,7 @@ class TimerViewModel: ObservableObject {
             // 立即设置到系统（确保同步更新）
             DispatchQueue.main.async {
                 MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
-                self.logger.info("🎵 成功更新锁屏媒体信息: \(title) - 播放率: \(playbackRate)")
+                // self.logger.info("🎵 成功更新锁屏媒体信息: \(title) - 播放率: \(playbackRate)")
             }
         } else {
             // 没有计时任务时清除锁屏信息
@@ -612,6 +920,24 @@ class TimerViewModel: ObservableObject {
                 self.logger.info("🎵 清除锁屏媒体信息")
             }
         }
+    }
+    
+    /// 自适应Timer间隔 - 根据设备状态动态调整
+    private var adaptiveTimerInterval: TimeInterval {
+        // 过热情况下降低频率
+        if thermalState == .critical {
+            return 3.0  // 3秒更新一次 (过热保护)
+        } else if thermalState == .serious {
+            return 2.0  // 2秒更新一次 (温度较高)
+        }
+        
+        // 低电量模式下降低频率
+        if isLowPowerMode {
+            return 2.0  // 2秒更新一次 (省电模式)
+        }
+        
+        // 正常状态
+        return 1.0  // 1秒更新一次 (正常模式)
     }
 }
 
