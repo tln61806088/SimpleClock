@@ -55,6 +55,11 @@ struct HomeView: View {
     let mainButtonHeight: CGFloat = 80
     let mainButtonSpacing: CGFloat = 16
     
+    // 设备类型检测
+    private var isIPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -128,24 +133,42 @@ struct HomeView: View {
                         }
                         .padding(.horizontal, 40)
                     
-                        // 计时设置区域
-                        TimerPickerView(settings: $timerSettings, isEnabled: isTimerPickerEnabled)
-                            .onChange(of: timerSettings) { newSettings in
-                                timerViewModel.updateSettings(newSettings)
-                            }
-                            .padding(.bottom, 16)
+                        // iPad和iPhone的计时设置区域处理不同
+                        if !isIPad {
+                            // iPhone: 计时设置区域放在顶部固定区域
+                            TimerPickerView(settings: $timerSettings, isEnabled: isTimerPickerEnabled)
+                                .onChange(of: timerSettings) { newSettings in
+                                    timerViewModel.updateSettings(newSettings)
+                                }
+                        }
 
                     }
                     .padding(.horizontal, DesignSystem.Spacing.medium + 4)
                     .padding(.top, DesignSystem.Spacing.small + 4)
                     
-                    // 中间弹性空白区域
-                    Spacer(minLength: calculateDynamicSpacerLength())
+                    // 中间间距区域 - iPad使用固定间距，iPhone保持弹性  
+                    if !isIPad {
+                        // iPhone: 保持原有弹性空白区域
+                        Spacer(minLength: calculateDynamicSpacerLength())
+                    }
                     
-                    // 底部按钮区 - 固定在底部，响应式高度
+                    // 按钮区域 - iPad自然高度，iPhone固定高度
                     VStack(spacing: 0) {
-                        MainControlButtonsView(viewModel: timerViewModel, isAccessibilityMode: appSettingsState.isAccessibilityMode)
-                            .frame(height: calculateButtonAreaHeight(for: geometry), alignment: .top)
+                        if isIPad {
+                            // iPad: TimerPickerView和按钮区域组合，紧贴布局
+                            VStack(spacing: 30) {
+                                TimerPickerView(settings: $timerSettings, isEnabled: isTimerPickerEnabled)
+                                    .onChange(of: timerSettings) { newSettings in
+                                        timerViewModel.updateSettings(newSettings)
+                                    }
+                                
+                                MainControlButtonsView(viewModel: timerViewModel, isAccessibilityMode: appSettingsState.isAccessibilityMode)
+                            }
+                        } else {
+                            // iPhone: 保持原有高度限制
+                            MainControlButtonsView(viewModel: timerViewModel, isAccessibilityMode: appSettingsState.isAccessibilityMode)
+                                .frame(height: calculateButtonAreaHeight(for: geometry), alignment: .top)
+                        }
                     }
                     .padding(.horizontal, DesignSystem.Spacing.medium + 4)
 .padding(.bottom, max(geometry.safeAreaInsets.bottom, 16 * DesignSystem.Sizes.scale))
