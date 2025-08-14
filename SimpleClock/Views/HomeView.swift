@@ -5,6 +5,9 @@ class AppSettingsState: ObservableObject {
     @Published var isExpanded = false
     @Published var isAccessibilityMode = true // 默认为无障碍模式
     
+    // 用于记忆普通模式下选择的主题
+    private var normalModeTheme: DesignSystem.ColorTheme = .blue
+    
     init() {
         // 从UserDefaults读取设置
         self.isAccessibilityMode = UserDefaults.standard.bool(forKey: "isAccessibilityMode")
@@ -14,19 +17,45 @@ class AppSettingsState: ObservableObject {
             UserDefaults.standard.set(true, forKey: "isAccessibilityMode")
         }
         
+        // 读取普通模式主题记忆
+        if let savedNormalTheme = UserDefaults.standard.string(forKey: "normalModeTheme"),
+           let theme = DesignSystem.ColorTheme(rawValue: savedNormalTheme) {
+            self.normalModeTheme = theme
+        }
+        
         // 如果是无障碍模式，确保使用黑色主题
         if self.isAccessibilityMode {
             ThemeManager.shared.currentTheme = .black
+        } else {
+            // 普通模式下使用记忆的主题
+            ThemeManager.shared.currentTheme = normalModeTheme
         }
     }
     
     func toggleAccessibilityMode() {
+        if !isAccessibilityMode {
+            // 从普通模式切换到无障碍模式时，保存当前主题
+            normalModeTheme = ThemeManager.shared.currentTheme
+            UserDefaults.standard.set(normalModeTheme.rawValue, forKey: "normalModeTheme")
+        }
+        
         isAccessibilityMode.toggle()
         UserDefaults.standard.set(isAccessibilityMode, forKey: "isAccessibilityMode")
         
-        // 切换到无障碍模式时强制使用黑色主题
         if isAccessibilityMode {
+            // 切换到无障碍模式时使用黑色主题
             ThemeManager.shared.currentTheme = .black
+        } else {
+            // 切换回普通模式时恢复之前的主题
+            ThemeManager.shared.currentTheme = normalModeTheme
+        }
+    }
+    
+    /// 在普通模式下更新主题记忆
+    func updateNormalModeTheme(_ theme: DesignSystem.ColorTheme) {
+        if !isAccessibilityMode {
+            normalModeTheme = theme
+            UserDefaults.standard.set(normalModeTheme.rawValue, forKey: "normalModeTheme")
         }
     }
 }
@@ -205,16 +234,13 @@ struct HomeView: View {
             cachedBackgroundGradient = DesignSystem.Colors.backgroundGradient
             cachedPrimaryShadow = DesignSystem.Shadows.primaryShadow
             cachedSecondaryShadow = DesignSystem.Shadows.secondaryShadow
+            
+            // 如果当前是普通模式，保存主题选择
+            appSettingsState.updateNormalModeTheme(newTheme)
         }
         .onChange(of: appSettingsState.isAccessibilityMode) { isAccessibilityMode in
-            // 模式切换时的主题管理
-            if isAccessibilityMode {
-                // 切换到无障碍模式：强制使用黑色主题
-                if themeManager.currentTheme != .black {
-                    themeManager.currentTheme = .black
-                }
-            }
-            // 普通模式保持当前主题，不做强制修改
+            // 主题切换逻辑现在由AppSettingsState.toggleAccessibilityMode()处理
+            // 这里不需要额外的主题管理代码
         }
     }
     
