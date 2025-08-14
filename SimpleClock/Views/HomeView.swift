@@ -129,9 +129,17 @@ struct HomeView: View {
                             
                             // 右上角模式切换滑块
                             HStack(spacing: 4) {
-                                Text(appSettingsState.isAccessibilityMode ? "无障碍" : "普通")
-                                    .font(.caption2)
-                                    .foregroundColor(.primary)
+                                Group {
+                                    if appSettingsState.isAccessibilityMode {
+                                        Text("无障碍")
+                                            .font(.caption2)
+                                            .foregroundColor(.primary)
+                                    } else {
+                                        Text("普通")
+                                            .font(.caption2)
+                                            .foregroundStyle(themeManager.currentTheme.primaryGradient)
+                                    }
+                                }
                                     .frame(width: 36, alignment: .trailing) // 固定宽度确保布局稳定
                                 
                                 Toggle("", isOn: Binding(
