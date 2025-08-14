@@ -308,11 +308,17 @@ SimpleClock/
    - 添加refreshTrigger机制确保UI及时更新
    - 统一按钮高度计算逻辑
 
+5. **设备方向权限控制**
+   - iPhone锁定竖屏使用，避免意外旋转影响体验
+   - iPad支持横竖屏自由切换，充分利用大屏优势
+   - 通过Deployment Info和AppDelegate双重控制
+
 **技术实现**：
 - MainControlButtonsView: calculateButtonHeightForDevice()分级计算
 - TimerPickerView: calculatePickerWidth()方向感知计算
 - 使用UIScreen.main.bounds检测方向，避免设备方向延迟
 - 通过NotificationCenter监听设备旋转，触发UI刷新
+- AppDelegate实现supportedInterfaceOrientationsFor设备差异化控制
 
 ### 🔧 2025-08-08 语音识别功能优化
 **本次更新主要内容**：

@@ -10,8 +10,21 @@ import UserNotifications
 import Speech
 import BackgroundTasks
 
+// 应用代理类，处理方向控制
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        // iPad支持竖屏和横屏，iPhone只支持竖屏
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return [.portrait, .landscapeLeft, .landscapeRight]
+        } else {
+            return .portrait
+        }
+    }
+}
+
 @main
 struct SimpleClockApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
         WindowGroup {
