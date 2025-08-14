@@ -177,7 +177,7 @@ struct TimerPickerView: View {
         let isIPad = UIDevice.current.userInterfaceIdiom == .pad
         let isLandscape = screenBounds.width > screenBounds.height
         
-        let horizontalPadding = (DesignSystem.Spacing.medium + 4) * 2 // 左右边距
+        let horizontalPadding = (DesignSystem.Spacing.medium + 4) * 2 // 左右边距，与HomeView保持一致
         let pickerSpacing = DesignSystem.Spacing.pickerSpacing // 两个滚轮之间的间距
         
         // 可用宽度 = 屏幕宽度 - 左右边距
@@ -189,8 +189,11 @@ struct TimerPickerView: View {
             let buttonSpacing = DesignSystem.Spacing.buttonSpacing
             // 计算单个按钮的实际宽度：(可用宽度 - 按钮间距) / 2
             let buttonWidth = (availableWidth - buttonSpacing) / 2
-            // 滚轮宽度与按钮宽度保持一致
-            return buttonWidth
+            // 但是滚轮需要考虑自己的间距，所以使用picker间距而不是button间距
+            // 确保两个滚轮的总宽度加上间距不超过可用宽度
+            let pickerWidth = (availableWidth - pickerSpacing) / 2
+            // 取较小值确保不会溢出
+            return min(buttonWidth, pickerWidth)
         } else {
             // iPhone和iPad竖屏模式保持原有逻辑
             // 每个滚轮的宽度 = (可用宽度 - 滚轮间距) / 2
