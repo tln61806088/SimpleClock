@@ -211,8 +211,13 @@ struct MainControlButtonsView: View {
                 }
             }
         } else {
-            // iPhone保持原有高度
-            return DesignSystem.Sizes.mainButtonHeight
+            // iPhone保持原有高度，但区分主按钮和语音按钮
+            switch row {
+            case 3: // 第三行：语音识别按钮
+                return DesignSystem.Sizes.voiceButtonHeight
+            default: // 第一二行：主控制按钮
+                return DesignSystem.Sizes.mainButtonHeight
+            }
         }
     }
     
