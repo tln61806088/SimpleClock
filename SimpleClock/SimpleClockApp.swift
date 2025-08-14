@@ -3,6 +3,10 @@
 //  SimpleClock
 //
 //  Created by 孙凡 on 2025/7/24.
+//  Copyright © 2025 SimpleClock. All rights reserved.
+//
+//  Licensed under the MIT License.
+//  See LICENSE file in the project root for full license information.
 //
 
 import SwiftUI
