@@ -14,6 +14,9 @@ struct MainControlButtonsView: View {
     @State private var cachedButtonTitle = "开始计时"
     @State private var cachedButtonIcon = "play.fill"
     
+    // 强制刷新按钮高度的触发器
+    @State private var buttonHeightRefreshTrigger = false
+    
     var body: some View {
         GeometryReader { geometry in
             VStack(alignment: .center, spacing: DesignSystem.Spacing.buttonSpacing) {
@@ -24,7 +27,7 @@ struct MainControlButtonsView: View {
                         title: cachedButtonTitle,
                         systemImage: cachedButtonIcon,
                         backgroundColor: .green,
-                        buttonHeight: DesignSystem.Sizes.mainButtonHeight,
+                        buttonHeight: calculateButtonHeightForDevice(row: 1, refreshTrigger: buttonHeightRefreshTrigger),
                         isMainButton: true
                     ) {
                         handleStartPauseTimer()
@@ -35,14 +38,14 @@ struct MainControlButtonsView: View {
                         title: "结束计时",
                         systemImage: "stop.fill",
                         backgroundColor: .red,
-                        buttonHeight: DesignSystem.Sizes.mainButtonHeight,
+                        buttonHeight: calculateButtonHeightForDevice(row: 2, refreshTrigger: buttonHeightRefreshTrigger),
                         isMainButton: true
                     ) {
                         handleEndTimer()
                     }
                     
                     // 语音识别按钮（黄色）
-                    VoiceRecognitionButton(viewModel: viewModel, isAccessibilityMode: isAccessibilityMode)
+                    VoiceRecognitionButton(viewModel: viewModel, isAccessibilityMode: isAccessibilityMode, buttonHeight: calculateButtonHeightForDevice(row: 3, refreshTrigger: buttonHeightRefreshTrigger))
                 } else {
                     // 普通模式：5个按钮（2x2网格布局）
                     // 第一行按钮
@@ -52,7 +55,7 @@ struct MainControlButtonsView: View {
                             title: "时间播报",
                             systemImage: "clock.fill",
                             backgroundColor: .clear,
-                            buttonHeight: calculateButtonHeight(for: geometry),
+                            buttonHeight: calculateButtonHeightForDevice(row: 1, refreshTrigger: buttonHeightRefreshTrigger),
                             isMainButton: true
                         ) {
                             handleTimeAnnouncement()
@@ -63,7 +66,7 @@ struct MainControlButtonsView: View {
                             title: cachedButtonTitle,
                             systemImage: cachedButtonIcon,
                             backgroundColor: .clear,
-                            buttonHeight: calculateButtonHeight(for: geometry),
+                            buttonHeight: calculateButtonHeightForDevice(row: 1, refreshTrigger: buttonHeightRefreshTrigger),
                             isMainButton: true
                         ) {
                             handleStartPauseTimer()
@@ -77,7 +80,7 @@ struct MainControlButtonsView: View {
                             title: "剩余时长",
                             systemImage: "timer.circle.fill",
                             backgroundColor: .clear,
-                            buttonHeight: calculateButtonHeight(for: geometry),
+                            buttonHeight: calculateButtonHeightForDevice(row: 2, refreshTrigger: buttonHeightRefreshTrigger),
                             isMainButton: true
                         ) {
                             handleRemainingTime()
@@ -88,7 +91,7 @@ struct MainControlButtonsView: View {
                             title: "结束计时",
                             systemImage: "stop.fill",
                             backgroundColor: .clear,
-                            buttonHeight: calculateButtonHeight(for: geometry),
+                            buttonHeight: calculateButtonHeightForDevice(row: 2, refreshTrigger: buttonHeightRefreshTrigger),
                             isMainButton: true
                         ) {
                             handleEndTimer()
@@ -96,7 +99,7 @@ struct MainControlButtonsView: View {
                     }
                     
                     // 第三行：语音识别按钮
-                    VoiceRecognitionButton(viewModel: viewModel, isAccessibilityMode: isAccessibilityMode)
+                    VoiceRecognitionButton(viewModel: viewModel, isAccessibilityMode: isAccessibilityMode, buttonHeight: calculateButtonHeightForDevice(row: 3, refreshTrigger: buttonHeightRefreshTrigger))
                 }
             }
             .padding(.top, calculateDynamicTopPaddingWithSpacing())
@@ -111,6 +114,14 @@ struct MainControlButtonsView: View {
             .onChange(of: viewModel.isPaused) { _ in
                 // 只在计时器暂停状态变化时更新按钮
                 updateButtonState()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+                // 设备方向变化时强制刷新按钮高度
+                buttonHeightRefreshTrigger.toggle()
+            }
+            .onChange(of: isAccessibilityMode) { _ in
+                // 模式切换时强制刷新按钮高度
+                buttonHeightRefreshTrigger.toggle()
             }
         }
     }
@@ -165,18 +176,43 @@ struct MainControlButtonsView: View {
     
     /// 根据屏幕高度动态计算顶部间距（包含滚轮间距）
     private func calculateDynamicTopPaddingWithSpacing() -> CGFloat {
-        let screenHeight = UIScreen.main.bounds.height
-        let baseSpacing = DesignSystem.Spacing.buttonSpacing
+        // 所有设备都使用最小间距，让按钮在红色背景内顶端对齐
+        return 8
+    }
+    
+    /// 根据设备类型和按钮行数计算按钮高度
+    private func calculateButtonHeightForDevice(row: Int = 1, refreshTrigger: Bool = false) -> CGFloat {
+        let isIPad = UIDevice.current.userInterfaceIdiom == .pad
         
-        // 根据屏幕高度调整额外间距，并为滚轮间距做优化
-        if screenHeight <= 667 { // iPhone 6s/SE 等小屏幕 - 只增加少量间距
-            return baseSpacing + 8  // 小屏幕只加8点，避免挤压
-        } else if screenHeight <= 736 { // iPhone 6 Plus等中屏幕
-            return baseSpacing + DesignSystem.Spacing.small + 8 // 增加16点
-        } else if screenHeight <= 812 { // iPhone X等中大屏幕
-            return baseSpacing + DesignSystem.Spacing.small + 12 // 增加20点
-        } else { // 大屏幕设备 (iPhone 15 Pro等)
-            return baseSpacing + DesignSystem.Spacing.medium + 16 // 增加32点，确保有足够间距
+        if isIPad {
+            // 更准确的iPad方向检测：优先使用屏幕尺寸
+            let screenBounds = UIScreen.main.bounds
+            let isLandscape = screenBounds.width > screenBounds.height
+            
+            if isLandscape {
+                // iPad横向模式：第一二行1.25倍，第三行2倍
+                switch row {
+                case 1, 2: // 第一行、第二行：高度*1.25
+                    return DesignSystem.Sizes.mainButtonHeight * 1.25
+                case 3: // 第三行：2倍高度
+                    return DesignSystem.Sizes.mainButtonHeight * 2.0
+                default:
+                    return DesignSystem.Sizes.mainButtonHeight * 1.25
+                }
+            } else {
+                // iPad竖向模式
+                switch row {
+                case 1, 2: // 第一行、第二行：不调整
+                    return DesignSystem.Sizes.mainButtonHeight
+                case 3: // 第三行：1.5倍
+                    return DesignSystem.Sizes.mainButtonHeight * 1.5
+                default:
+                    return DesignSystem.Sizes.mainButtonHeight
+                }
+            }
+        } else {
+            // iPhone保持原有高度
+            return DesignSystem.Sizes.mainButtonHeight
         }
     }
     

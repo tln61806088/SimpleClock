@@ -15,6 +15,9 @@ struct TimerPickerView: View {
     @State private var lastSpokenInterval: Int = -1
     @State private var speakTimer: Timer?
     
+    // 用于强制刷新滚轮宽度的触发器
+    @State private var pickerWidthRefreshTrigger = false
+    
     init(settings: Binding<TimerSettings>, isEnabled: Bool = true) {
         self._settings = settings
         self.isEnabled = isEnabled
@@ -23,8 +26,7 @@ struct TimerPickerView: View {
     }
     
     var body: some View {
-        GeometryReader { geometry in
-            VStack(spacing: DesignSystem.Spacing.medium + 4) {
+        VStack(spacing: 4) {
                 // 选择器区域 - 完全居中
                 HStack(spacing: DesignSystem.Spacing.pickerSpacing) {
                     // 左侧：计时时长选择器
@@ -64,7 +66,7 @@ struct TimerPickerView: View {
                             }
                         }
                         .pickerStyle(.wheel)
-                        .frame(width: calculatePickerWidth(geometry: geometry), height: 100)
+                        .frame(width: calculatePickerWidth(refreshTrigger: pickerWidthRefreshTrigger), height: 100)
                         .disabled(!isEnabled)
                         .opacity(isEnabled ? 1.0 : 0.6)
                         .background(
@@ -119,7 +121,7 @@ struct TimerPickerView: View {
                             }
                         }
                         .pickerStyle(.wheel)
-                        .frame(width: calculatePickerWidth(geometry: geometry), height: 100)
+                        .frame(width: calculatePickerWidth(refreshTrigger: pickerWidthRefreshTrigger), height: 100)
                         .disabled(!isEnabled)
                         .opacity(isEnabled ? 1.0 : 0.6)
                         .background(
@@ -142,7 +144,6 @@ struct TimerPickerView: View {
             }
             .frame(maxWidth: .infinity, alignment: .center) // VStack使用全宽并居中对齐
             .clipped() // 防止内容溢出
-        }
         .onAppear {
             // 初始化时播报当前设置
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -157,6 +158,10 @@ struct TimerPickerView: View {
             selectedDuration = newSettings.duration
             selectedInterval = newSettings.interval
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+            // 设备方向变化时强制刷新滚轮宽度
+            pickerWidthRefreshTrigger.toggle()
+        }
         .onDisappear {
             // 清理定时器
             speakTimer?.invalidate()
@@ -164,21 +169,34 @@ struct TimerPickerView: View {
         }
     }
     
-    /// 计算Picker宽度，与底部按钮宽度对齐
-    private func calculatePickerWidth(geometry: GeometryProxy) -> CGFloat {
-        // GeometryReader已经在TimerPickerView的容器内，geometry.size.width就是可用宽度
-        // 这个宽度已经减去了HomeView中设置的.padding(.horizontal, DesignSystem.Spacing.medium + 4)
+    /// 计算Picker宽度，与下方按钮宽度对齐
+    private func calculatePickerWidth(refreshTrigger: Bool = false) -> CGFloat {
+        // 获取屏幕宽度和设备信息
+        let screenBounds = UIScreen.main.bounds
+        let screenWidth = screenBounds.width
+        let isIPad = UIDevice.current.userInterfaceIdiom == .pad
+        let isLandscape = screenBounds.width > screenBounds.height
         
-        // 两个滚轮之间的间距
-        let pickerSpacing = DesignSystem.Spacing.pickerSpacing
+        let horizontalPadding = (DesignSystem.Spacing.medium + 4) * 2 // 左右边距
+        let pickerSpacing = DesignSystem.Spacing.pickerSpacing // 两个滚轮之间的间距
         
-        // 每个picker的可用宽度 = (可用总宽度 - 间距) / 2
-        // 让滚轮宽度更大，接近底部按钮的宽度
-        let pickerWidth = (geometry.size.width - pickerSpacing) / 2
+        // 可用宽度 = 屏幕宽度 - 左右边距
+        let availableWidth = screenWidth - horizontalPadding
         
-        // 设置更合理的最小宽度
-        let minWidth: CGFloat = 140 * DesignSystem.Sizes.scale
-        return max(pickerWidth, minWidth)
+        // iPad横屏模式下，滚轮宽度需要与按钮宽度精确匹配
+        if isIPad && isLandscape {
+            // 在横屏模式下，按钮之间有DesignSystem.Spacing.buttonSpacing间距
+            let buttonSpacing = DesignSystem.Spacing.buttonSpacing
+            // 计算单个按钮的实际宽度：(可用宽度 - 按钮间距) / 2
+            let buttonWidth = (availableWidth - buttonSpacing) / 2
+            // 滚轮宽度与按钮宽度保持一致
+            return buttonWidth
+        } else {
+            // iPhone和iPad竖屏模式保持原有逻辑
+            // 每个滚轮的宽度 = (可用宽度 - 滚轮间距) / 2
+            let pickerWidth = (availableWidth - pickerSpacing) / 2
+            return pickerWidth
+        }
     }
     
     /// 处理计时时长变化
