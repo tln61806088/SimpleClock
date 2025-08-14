@@ -24,6 +24,7 @@ struct VoiceRecognitionButton: View {
     @ObservedObject private var themeManager = ThemeManager.shared
     var viewModel: TimerViewModel  // 改为普通引用，避免每秒重绘
     var isAccessibilityMode: Bool = true // 默认为无障碍模式
+    var buttonHeight: CGFloat? = nil // 新增：可选的自定义按钮高度
     @State private var recordingTimer: Timer?
     @State private var isRecording = false
     
@@ -38,7 +39,7 @@ struct VoiceRecognitionButton: View {
                         RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.voiceButton)
                             .stroke(themeManager.currentTheme.primaryGradient, lineWidth: DesignSystem.Borders.primaryBorder.lineWidth)
                     )
-                    .frame(maxWidth: .infinity, minHeight: DesignSystem.Sizes.voiceButtonHeight, maxHeight: DesignSystem.Sizes.voiceButtonHeight)
+                    .frame(maxWidth: .infinity, minHeight: buttonHeight ?? DesignSystem.Sizes.voiceButtonHeight, maxHeight: buttonHeight ?? DesignSystem.Sizes.voiceButtonHeight)
                 
                 // 图标和文字
                 VStack(spacing: DesignSystem.Spacing.voiceButtonInternalSpacing) {
