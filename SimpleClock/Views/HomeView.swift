@@ -23,13 +23,7 @@ class AppSettingsState: ObservableObject {
             self.normalModeTheme = theme
         }
         
-        // 如果是无障碍模式，确保使用黑色主题
-        if self.isAccessibilityMode {
-            ThemeManager.shared.currentTheme = .black
-        } else {
-            // 普通模式下使用记忆的主题
-            ThemeManager.shared.currentTheme = normalModeTheme
-        }
+        // 主题设置将在onAppear中处理
     }
     
     func toggleAccessibilityMode() {
@@ -113,7 +107,7 @@ struct HomeView: View {
                             Spacer()
                             
                             // 中央标题（使用缓存渐变）
-                            Text("无障碍计时器")
+                            Text("极简计时器")
                                 .font(DesignSystem.Fonts.title(size: DesignSystem.Sizes.titleText))
                                 .foregroundStyle(cachedPrimaryGradient)
                                 .shadow(color: cachedPrimaryShadow.color,
@@ -132,15 +126,15 @@ struct HomeView: View {
                                 Group {
                                     if appSettingsState.isAccessibilityMode {
                                         Text("无障碍")
-                                            .font(.caption2)
+                                            .font(.system(size: 16))
                                             .foregroundColor(.primary)
                                     } else {
                                         Text("普通")
-                                            .font(.caption2)
+                                            .font(.system(size: 16))
                                             .foregroundStyle(themeManager.currentTheme.primaryGradient)
                                     }
                                 }
-                                    .frame(width: 36, alignment: .trailing) // 固定宽度确保布局稳定
+                                    .frame(width: 50, alignment: .trailing) // 固定宽度确保布局稳定
                                 
                                 Toggle("", isOn: Binding(
                                     get: { appSettingsState.isAccessibilityMode },
@@ -223,6 +217,18 @@ struct HomeView: View {
             timerViewModel.updateSettings(timerSettings)
             // 初始化TimerPicker状态
             isTimerPickerEnabled = !timerViewModel.isRunning
+            
+            // 设置初始主题 - 延迟到视图加载后避免状态更新警告
+            if appSettingsState.isAccessibilityMode {
+                ThemeManager.shared.currentTheme = .black
+            } else {
+                // 从AppSettingsState获取保存的普通模式主题
+                if let savedTheme = UserDefaults.standard.string(forKey: "normalModeTheme"),
+                   let theme = DesignSystem.ColorTheme(rawValue: savedTheme) {
+                    ThemeManager.shared.currentTheme = theme
+                }
+            }
+            
             // 添加进入动画
             withAnimation(.easeInOut(duration: 0.8)) {
                 // 可以在这里添加状态变化来驱动动画

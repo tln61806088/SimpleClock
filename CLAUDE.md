@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**本次更新主要内容**：普通模式标题渐变色实现 - 修复顶部滑块"普通"文字颜色显示，在普通模式下使用主题渐变色，无障碍模式下保持系统主色调，解决iOS 15.5+兼容性问题 (2025-08-14)
+**本次更新主要内容**：界面优化和SwiftUI状态更新警告修复 - 修复HomeView中"Publishing changes from within view updates"警告，将主题设置逻辑从init移至onAppear；修改应用标题为"极简计时器"；调整模式切换文字字体大小为16pt并扩大文本框宽度；安装sequential-thinking和inner-monologue MCP服务器 (2025-08-17)
 
 SimpleClock 项目文档 - 专为无障碍用户设计的语音计时器应用
 
