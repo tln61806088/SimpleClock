@@ -50,6 +50,16 @@ xcodebuild test -project SimpleClock.xcodeproj -scheme SimpleClock -destination 
 
 SimpleClock requests notifications, speech, microphone, and background audio/refresh tasks. Ensure to grant permissions when prompted for the app to function properly.
 
+## Contributing 💖
+
+SimpleClock is an open-source public welfare project. We strongly believe in making technology accessible to everyone. We welcome and encourage developers from all over the world to join us in improving this app!
+
+We are particularly looking for contributions in:
+- **Multi-language Support**: Expanding voice recognition and TTS commands to support more languages.
+- **Accessibility Enhancements**: Further optimizing the VoiceOver and voice-control experience.
+
+Feel free to open issues, submit pull requests, or share your ideas to help the visually impaired community globally.
+
 ## License
 
 See the `LICENSE` file for more details.
