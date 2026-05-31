@@ -1,5 +1,9 @@
 # SimpleClock
 
+![Platform](https://img.shields.io/badge/Platform-iOS-blue.svg)
+![iOS](https://img.shields.io/badge/iOS-15.5%2B-lightgray.svg)
+![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 A powerful and intuitive iOS clock and timer application built with SwiftUI (Swift 5.9). SimpleClock provides a rich set of features including customizable timers, background audio, speech recognition, and seamless UI/UX design.
 
 ## Features
