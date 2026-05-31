@@ -4,14 +4,14 @@
 ![iOS](https://img.shields.io/badge/iOS-15.5%2B-lightgray.svg)
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
-A powerful and intuitive iOS clock and timer application built with SwiftUI (Swift 5.9). SimpleClock provides a rich set of features including customizable timers, background audio, speech recognition, and seamless UI/UX design.
+SimpleClock is an accessible iOS clock and timer application specifically designed for the **blind and visually impaired community** (or anyone who finds standard alarm clocks difficult to use). Built with SwiftUI, it features complete VoiceOver support and can be entirely controlled via **voice commands** to set, start, stop, and modify timers.
 
 ## Features
 
-- **Intuitive UI**: Built entirely with SwiftUI, featuring distinct views for Timer Picker, Digital Clock, and Home.
-- **Advanced Timer Logic**: Robust timer scheduling, background execution, and reminder cadence management.
-- **Audio & Speech Integration**: Utilizes speech-to-timer flows, continuous background audio, and microphone support.
-- **Robust Background Modes**: Timers and reminders continue to function seamlessly in the background with `BGTask` integration.
+- **Accessibility First**: Designed from the ground up for visually impaired users with complete VoiceOver support, comprehensive TTS broadcasting, and haptic feedback.
+- **Smart Voice Control**: Fully controllable via voice commands. Users can seamlessly set alarms, turn them on/off, and modify timer durations using natural speech.
+- **Intuitive UI**: Built entirely with SwiftUI, offering 31 dynamic themes, automatic dark mode support, and adaptive layouts supporting all devices from iPhone 6s to iPhone 16.
+- **Advanced Timer Logic & Background Execution**: Robust timer scheduling that continues to function seamlessly in the background with `BGTask` and continuous audio session integration.
 
 ## Project Structure
 
